@@ -42,6 +42,8 @@ set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 # --- Pre-flow: Python generator -> HAL ---
 # Spusti gen_config.py, nacita generated_config.tcl, aplikuje HAL piny
 source gen/files.tcl
+set_global_assignment -name SYSTEMVERILOG_FILE gen/soc_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../src/soc/static/led_effects.sv
 
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../../scripts/pre_flow_demo.tcl"
 

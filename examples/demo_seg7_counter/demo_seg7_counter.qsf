@@ -49,33 +49,3 @@ set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../../scripts/pre_f
 
 
 # --- Vsetko nizsie sa moze vymazat ---
-
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ONB_BUTTONS[*]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ONB_DIG[*]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ONB_SEG[*]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to RESET_N
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SYS_CLK
-set_location_assignment PIN_Y13 -to ONB_BUTTONS[0]
-set_location_assignment PIN_AA13 -to ONB_BUTTONS[1]
-set_location_assignment PIN_B5 -to ONB_DIG[0]
-set_location_assignment PIN_B3 -to ONB_DIG[1]
-set_location_assignment PIN_B6 -to ONB_DIG[2]
-set_location_assignment PIN_C4 -to ONB_SEG[0]
-set_location_assignment PIN_B2 -to ONB_SEG[1]
-set_location_assignment PIN_A3 -to ONB_SEG[2]
-set_location_assignment PIN_C3 -to ONB_SEG[3]
-set_location_assignment PIN_A5 -to ONB_SEG[4]
-set_location_assignment PIN_B4 -to ONB_SEG[5]
-set_location_assignment PIN_B1 -to ONB_SEG[6]
-set_location_assignment PIN_A4 -to ONB_SEG[7]
-set_location_assignment PIN_W13 -to RESET_N
-set_location_assignment PIN_T2 -to SYS_CLK
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh: pre_flow_demo.tcl"
-set_global_assignment -name SYSTEMVERILOG_FILE ../../src/soc/gen/soc_top.sv
-set_global_assignment -name VERILOG_MACRO "ONB_SEG_ENABLED=1"
-set_global_assignment -name VERILOG_MACRO "ONB_DIG_ENABLED=1"
-set_global_assignment -name VERILOG_MACRO "ONB_BUTTONS_ENABLED=1"
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to ONB_BUTTONS[*]
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to RESET_N
-set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
-set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
