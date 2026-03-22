@@ -1,13 +1,7 @@
 # =============================================================================
-# demo_led_effects.qsf — Quartus Project Settings
+# demo_uart_hello.qsf
 # Target: QMTech EP4CE55F23C8
-# Framework: QMTech Cyclone IV RISC-V SoC Framework
-#
-# POUŽITIE:
-#   1. Otvor tento súbor v Quartus Prime (File → Open Project)
-#   2. Spusti kompiláciu (Processing → Start Compilation)
-#   3. Konfiguráciu periférií uprav v: board/project_config.yaml
-#      (nie tu — tento súbor nemeň)
+# DO NOT EDIT - configure via board/project_config.yaml
 # =============================================================================
 
 # --- Quartus meta ---
@@ -26,26 +20,24 @@ set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 8
 
 # --- Top-level design ---
 set_global_assignment -name TOP_LEVEL_ENTITY soc_top
-set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
+set_global_assignment -name VERILOG_INPUT_VERSION SystemVerilog_2005
 
 # --- Timing constraints ---
-set_global_assignment -name SDC_FILE demo_led_effects.sdc
+set_global_assignment -name SDC_FILE demo_uart_hello.sdc
 
-# --- Partition (Quartus default) ---
+# --- Generated source file list (updated by make gen) ---
+source gen/files.tcl
+
+# --- Pre-flow: runs gen_config.py + HAL pin assignments ---
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../../scripts/pre_flow_demo.tcl"
+
+# --- Partition ---
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
 # --- Power settings ---
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
-
-# --- Pre-flow: Python generator -> HAL ---
-# Spusti gen_config.py, nacita generated_config.tcl, aplikuje HAL piny
-source gen/files.tcl
-set_global_assignment -name SYSTEMVERILOG_FILE gen/soc_top.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../src/soc/static/seg7_counter.sv
-
-set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../../scripts/pre_flow_demo.tcl"
-
 
 # --- Vsetko nizsie sa moze vymazat ---
