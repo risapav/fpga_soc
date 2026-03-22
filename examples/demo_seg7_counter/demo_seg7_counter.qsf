@@ -1,5 +1,5 @@
 # =============================================================================
-# demo_led_effects.qsf — Quartus Project Settings
+# demo_seg7_counter.qsf — Quartus Project Settings
 # Target: QMTech EP4CE55F23C8
 # Framework: QMTech Cyclone IV RISC-V SoC Framework
 #
@@ -29,7 +29,7 @@ set_global_assignment -name TOP_LEVEL_ENTITY soc_top
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 
 # --- Timing constraints ---
-set_global_assignment -name SDC_FILE demo_led_effects.sdc
+set_global_assignment -name SDC_FILE demo_seg7_counter.sdc
 
 # --- Partition (Quartus default) ---
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top

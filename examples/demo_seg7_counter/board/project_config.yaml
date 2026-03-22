@@ -1,0 +1,33 @@
+# DEMO: seg7_counter
+# Standalone RTL demo - 4-digit hex counter on 7-segment display
+# BTN0 (ONB_BUTTONS[0]) = increment manually
+# BTN1 (ONB_BUTTONS[1]) = reset counter
+# Auto-increment: 1 count per second
+
+board:
+  type: qmtech_ep4ce55
+
+demo:
+  name: seg7_counter
+  mode: standalone
+
+soc:
+  clock_freq: 50_000_000
+
+onboard:
+  leds:    false
+  seg:     true
+  dig:     true
+  buttons: true
+  uart:    false
+
+pmod:
+  J10: NONE
+  J11: NONE
+
+standalone_modules:
+  counter:
+    module: seg7_counter
+    enabled: true
+    params:
+      CLK_FREQ: 50_000_000
