@@ -156,6 +156,25 @@ peripherals:
           - {name: PMOD_J10_P, dir: output, width: 8}
           - {name: PMOD_J11_P, dir: output, width: 8}
 
+  seg7_counter:
+    description: Standalone 7-segment counter with button control
+    module: seg7_counter
+    bus_type: none
+    needs_bus: false
+    params:
+      - {name: CLK_FREQ, default: 50_000_000}
+    interfaces:
+      - name: display
+        type: display
+        signals:
+          - {name: ONB_SEG, dir: output, width: 8}
+          - {name: ONB_DIG, dir: output, width: 3}
+      - name: buttons
+        type: gpio
+        signals:
+          - {name: ONB_BUTTONS, dir: input, width: 2}
+
+
   axi_ram:
     module: "axi_ram_top"
     bus_type: axi_full

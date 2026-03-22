@@ -712,10 +712,12 @@ class SoCBuilder:
 
 # =============================================================================
 if __name__ == "__main__":
-    import argparse
+    import argparse, hashlib
+    _self_hash = hashlib.md5(open(__file__,"rb").read()).hexdigest()[:8]
     parser = argparse.ArgumentParser(description="SoC Config Generator")
     parser.add_argument("--config", default=None,
-                        help="Cesta ku project_config.yaml (pre demo projekty)")
+                        help="Path to project_config.yaml (for demo projects)")
     args = parser.parse_args()
+    print(f"[GEN]  gen_config.py  rev:{_self_hash}")
     builder = SoCBuilder(project_cfg_override=args.config)
     builder.generate_all()
