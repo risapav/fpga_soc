@@ -1,50 +1,24 @@
 # =============================================================================
 # IP Registry pre QMTech Cyclone IV E SoC
 # Synchronized with hal_qmtech_ep4ce55.tcl v4.0
+# FIX: V_etky perif_rie s_ spr_vne pod jedn_m k___om `peripherals:`
+# FIX: AXI typy s_ atrib_tom ka_dej perif_rie, nie samostatn_ sekcie
 # =============================================================================
 
 peripherals:
-axi_peripherals:
-  axi_ram:
-    module: axi_ram_top
-    type: axi_full
-    role: slave
-    address_range: 65536
-    interrupts: []
-    params:
-      data_width: 32
-      addr_width: 16
-      id_width: 4
 
-axi_lite_peripherals:
-  axi_lite_ctrl:
-    module: axi_lite_ctrl_top
-    type: axi_lite
-    role: slave
-    address_range: 256
-    params:
-      data_width: 32
-      addr_width: 8
-
-axi_stream_peripherals:
-  axi_stream_source:
-    module: axi_stream_source_top
-    type: axi_stream
-    role: master
-    params:
-      data_width: 64
-      tuser_width: 8
-
-  # ----------------------------------------
+  # --- CPU Core ---
   picorv32:
     description: "RISC-V CPU Core"
     type: cpu
     interfaces:
       - {name: bus, type: simple_bus, role: master}
 
+  # --- System peripherals ---
   intc:
     description: "Vectored Interrupt Controller"
     module: "soc_intc"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x20
     registers:
@@ -53,21 +27,24 @@ axi_stream_peripherals:
       - {name: CLAIM,    offset: 0x08, access: ro}
       - {name: COMPLETE, offset: 0x0C, access: wo}
 
-  # ----------------------------------------
+  # --- On-board peripherals ---
   uart:
     module: "uart_top"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x10
     port_map: {clk: "clk_i", rst_n: "rst_ni"}
     interrupts:
-      - {name: rx_done, id: 0}
+      - {name: rx_done,  id: 0}
       - {name: tx_ready, id: 1}
     interfaces:
       - {name: bus,  type: simple_bus, role: slave}
-      - {name: uart, type: serial, signals: [{name: tx, dir: output}, {name: rx, dir: input}]}
+      - {name: uart, type: serial,
+         signals: [{name: tx, dir: output}, {name: rx, dir: input}]}
 
   timer:
     module: "timer_top"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x10
     interrupts:
@@ -77,76 +54,142 @@ axi_stream_peripherals:
 
   seg7:
     module: "seg7_top"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x10
     interfaces:
       - {name: bus, type: simple_bus, role: slave}
-      - {name: seg7, type: display, signals: [{name: seg, dir: output, width: 8}, {name: dig, dir: output, width: 4}]}
+      - {name: seg7, type: display,
+         signals: [{name: seg, dir: output, width: 8},
+                   {name: dig, dir: output, width: 4}]}
 
   leds:
     module: "leds_top"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x08
     interfaces:
       - {name: bus, type: simple_bus, role: slave}
-      - {name: leds, type: gpio, signals: [{name: led, dir: output, width: 6}]}
+      - {name: leds, type: gpio,
+         signals: [{name: led, dir: output, width: 6}]}
 
   buttons:
     module: "buttons_top"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x08
     interfaces:
       - {name: bus, type: simple_bus, role: slave}
-      - {name: buttons, type: gpio, signals: [{name: btn, dir: input, width: 2}]}
+      - {name: buttons, type: gpio,
+         signals: [{name: btn, dir: input, width: 2}]}
 
-  # ----------------------------------------
+  # --- Extended peripherals ---
   vga:
     module: "vga_top"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x20
     interfaces:
       - {name: bus, type: simple_bus, role: slave}
-      - {name: vga, type: video, signals: [{name: hsync, dir: output}, {name: vsync, dir: output}, {name: rgb, dir: output, width: 12}]}
+      - {name: vga, type: video,
+         signals: [{name: hsync, dir: output},
+                   {name: vsync, dir: output},
+                   {name: rgb,   dir: output, width: 12}]}
 
   sdram:
     module: "sdram_controller"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x1000
     interfaces:
-      - {name: bus, type: simple_bus, role: slave}
-      - {name: sdram, type: memory, signals: [{name: addr, dir: output, width: 13}, {name: dq, dir: inout, width: 16}]} 
+      - {name: bus,   type: simple_bus, role: slave}
+      - {name: sdram, type: memory,
+         signals: [{name: addr, dir: output, width: 13},
+                   {name: dq,   dir: inout,  width: 16}]}
 
   eth:
     module: "eth_mac"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x80
     interfaces:
       - {name: bus, type: simple_bus, role: slave}
-      - {name: eth, type: interface, signals: [{name: tx, dir: output}, {name: rx, dir: input}]}
+      - {name: eth, type: interface,
+         signals: [{name: tx, dir: output}, {name: rx, dir: input}]}
 
   sdc:
     module: "sdc_interface"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x40
     interfaces:
       - {name: bus, type: simple_bus, role: slave}
-      - {name: sdc, type: interface, signals: [{name: cmd, dir: output}, {name: data, dir: inout, width: 8}]} 
+      - {name: sdc, type: interface,
+         signals: [{name: cmd,  dir: output},
+                   {name: data, dir: inout, width: 8}]}
 
   cam:
     module: "cam_interface"
+    bus_type: simple_bus
     needs_bus: true
     address_range: 0x40
     interfaces:
       - {name: bus, type: simple_bus, role: slave}
-      - {name: cam, type: interface, signals: [{name: vsync, dir: input}, {name: hsync, dir: input}, {name: data, dir: input, width: 8}]} 
+      - {name: cam, type: interface,
+         signals: [{name: vsync, dir: input},
+                   {name: hsync, dir: input},
+                   {name: data,  dir: input, width: 8}]}
 
-  # ----------------------------------------
-  # PMOD Modules (pre-assigned)
-  PMOD:
-    J10:
-      SEG: {io_std: "3.3-V LVTTL"}
-      GPIO: {io_std: "3.3-V LVTTL"}
-    J11:
-      HDMI: {io_std: "LVDS"}
-      SEG: {io_std: "3.3-V LVTTL"}
+  # --- AXI peripherals (roz__ren_, parametrizovate_n_) ---
+  led_effects:
+    description: Standalone LED effects demo module
+    module: led_effects
+    bus_type: none
+    needs_bus: false
+    params:
+      - {name: CLK_FREQ, default: 50_000_000}
+    interfaces:
+      - name: leds
+        type: gpio
+        signals:
+          - {name: ONB_LEDS,   dir: output, width: 6}
+          - {name: PMOD_J10_P, dir: output, width: 8}
+          - {name: PMOD_J11_P, dir: output, width: 8}
 
+  axi_ram:
+    module: "axi_ram_top"
+    bus_type: axi_full
+    needs_bus: true
+    address_range: 65536
+    interrupts: []
+    params:
+      data_width: 32
+      addr_width: 16
+      id_width: 4
+
+  axi_lite_ctrl:
+    module: "axi_lite_ctrl_top"
+    bus_type: axi_lite
+    needs_bus: true
+    address_range: 256
+    params:
+      data_width: 32
+      addr_width: 8
+
+  axi_stream_source:
+    module: "axi_stream_source_top"
+    bus_type: axi_stream
+    needs_bus: false
+    params:
+      data_width: 64
+      tuser_width: 8
+
+# --- PMOD port konfigur_cia (nie s_ perif_rie, s_ to fyzick_ konektory) ---
+pmod_config:
+  J10:
+    SEG:  {io_std: "3.3-V LVTTL"}
+    GPIO: {io_std: "3.3-V LVTTL"}
+  J11:
+    HDMI: {io_std: "LVDS"}
+    SEG:  {io_std: "3.3-V LVTTL"}
+    GPIO: {io_std: "3.3-V LVTTL"}

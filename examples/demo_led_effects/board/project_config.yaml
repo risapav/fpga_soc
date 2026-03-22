@@ -1,0 +1,32 @@
+# DEMO: led_effects
+# Standalone RTL demo - no CPU, no bus
+# gen_config.py generates soc_top.sv which instantiates led_effects.sv directly
+
+board:
+  type: qmtech_ep4ce55
+
+demo:
+  name: led_effects
+  mode: standalone
+
+soc:
+  clock_freq: 50_000_000
+
+onboard:
+  leds:    true
+  seg:     false
+  dig:     false
+  buttons: false
+  uart:    false
+
+pmod:
+  J10: LED
+  J11: LED
+
+# Standalone peripherals: instantiated directly in soc_top, no bus needed
+standalone_modules:
+  led_fx:
+    module: led_effects
+    enabled: true
+    params:
+      CLK_FREQ: 50_000_000
