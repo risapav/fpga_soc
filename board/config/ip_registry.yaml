@@ -1,0 +1,152 @@
+# =============================================================================
+# IP Registry pre QMTech Cyclone IV E SoC
+# Synchronized with hal_qmtech_ep4ce55.tcl v4.0
+# =============================================================================
+
+peripherals:
+axi_peripherals:
+  axi_ram:
+    module: axi_ram_top
+    type: axi_full
+    role: slave
+    address_range: 65536
+    interrupts: []
+    params:
+      data_width: 32
+      addr_width: 16
+      id_width: 4
+
+axi_lite_peripherals:
+  axi_lite_ctrl:
+    module: axi_lite_ctrl_top
+    type: axi_lite
+    role: slave
+    address_range: 256
+    params:
+      data_width: 32
+      addr_width: 8
+
+axi_stream_peripherals:
+  axi_stream_source:
+    module: axi_stream_source_top
+    type: axi_stream
+    role: master
+    params:
+      data_width: 64
+      tuser_width: 8
+
+  # ----------------------------------------
+  picorv32:
+    description: "RISC-V CPU Core"
+    type: cpu
+    interfaces:
+      - {name: bus, type: simple_bus, role: master}
+
+  intc:
+    description: "Vectored Interrupt Controller"
+    module: "soc_intc"
+    needs_bus: true
+    address_range: 0x20
+    registers:
+      - {name: ENABLE,   offset: 0x00, access: rw}
+      - {name: PENDING,  offset: 0x04, access: ro}
+      - {name: CLAIM,    offset: 0x08, access: ro}
+      - {name: COMPLETE, offset: 0x0C, access: wo}
+
+  # ----------------------------------------
+  uart:
+    module: "uart_top"
+    needs_bus: true
+    address_range: 0x10
+    port_map: {clk: "clk_i", rst_n: "rst_ni"}
+    interrupts:
+      - {name: rx_done, id: 0}
+      - {name: tx_ready, id: 1}
+    interfaces:
+      - {name: bus,  type: simple_bus, role: slave}
+      - {name: uart, type: serial, signals: [{name: tx, dir: output}, {name: rx, dir: input}]}
+
+  timer:
+    module: "timer_top"
+    needs_bus: true
+    address_range: 0x10
+    interrupts:
+      - {name: alarm, id: 2}
+    interfaces:
+      - {name: bus, type: simple_bus, role: slave}
+
+  seg7:
+    module: "seg7_top"
+    needs_bus: true
+    address_range: 0x10
+    interfaces:
+      - {name: bus, type: simple_bus, role: slave}
+      - {name: seg7, type: display, signals: [{name: seg, dir: output, width: 8}, {name: dig, dir: output, width: 4}]}
+
+  leds:
+    module: "leds_top"
+    needs_bus: true
+    address_range: 0x08
+    interfaces:
+      - {name: bus, type: simple_bus, role: slave}
+      - {name: leds, type: gpio, signals: [{name: led, dir: output, width: 6}]}
+
+  buttons:
+    module: "buttons_top"
+    needs_bus: true
+    address_range: 0x08
+    interfaces:
+      - {name: bus, type: simple_bus, role: slave}
+      - {name: buttons, type: gpio, signals: [{name: btn, dir: input, width: 2}]}
+
+  # ----------------------------------------
+  vga:
+    module: "vga_top"
+    needs_bus: true
+    address_range: 0x20
+    interfaces:
+      - {name: bus, type: simple_bus, role: slave}
+      - {name: vga, type: video, signals: [{name: hsync, dir: output}, {name: vsync, dir: output}, {name: rgb, dir: output, width: 12}]}
+
+  sdram:
+    module: "sdram_controller"
+    needs_bus: true
+    address_range: 0x1000
+    interfaces:
+      - {name: bus, type: simple_bus, role: slave}
+      - {name: sdram, type: memory, signals: [{name: addr, dir: output, width: 13}, {name: dq, dir: inout, width: 16}]} 
+
+  eth:
+    module: "eth_mac"
+    needs_bus: true
+    address_range: 0x80
+    interfaces:
+      - {name: bus, type: simple_bus, role: slave}
+      - {name: eth, type: interface, signals: [{name: tx, dir: output}, {name: rx, dir: input}]}
+
+  sdc:
+    module: "sdc_interface"
+    needs_bus: true
+    address_range: 0x40
+    interfaces:
+      - {name: bus, type: simple_bus, role: slave}
+      - {name: sdc, type: interface, signals: [{name: cmd, dir: output}, {name: data, dir: inout, width: 8}]} 
+
+  cam:
+    module: "cam_interface"
+    needs_bus: true
+    address_range: 0x40
+    interfaces:
+      - {name: bus, type: simple_bus, role: slave}
+      - {name: cam, type: interface, signals: [{name: vsync, dir: input}, {name: hsync, dir: input}, {name: data, dir: input, width: 8}]} 
+
+  # ----------------------------------------
+  # PMOD Modules (pre-assigned)
+  PMOD:
+    J10:
+      SEG: {io_std: "3.3-V LVTTL"}
+      GPIO: {io_std: "3.3-V LVTTL"}
+    J11:
+      HDMI: {io_std: "LVDS"}
+      SEG: {io_std: "3.3-V LVTTL"}
+

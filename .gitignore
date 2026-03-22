@@ -1,0 +1,57 @@
+# ===================================================================
+# ==  Git ignore pre FPGA projekty (Quartus + QuestaSim)
+# ===================================================================
+
+# --- Súbory generované nástrojom Questa/ModelSim ---
+/build/
+/work/                  # Skompilovaná knižnica
+*.wlf                   # Súbor s priebehmi (Wave Log File)
+transcript              # Log simulácie
+msim.log                # Log, ktorý sme definovali v run.do
+msim_transcript         # Ďalší možný log
+modelsim.ini            # Konfiguračný súbor
+*.vstf
+vsim.dbg
+
+# --- Súbory generované nástrojom Icarus Verilog (ak by ste ho ešte použili) ---
+*.vcd                   # Súbor s priebehmi (Value Change Dump)
+*.vvp
+
+# --- Súbory generované nástrojom Intel Quartus ---
+/db/
+/incremental_db/
+/output_files/
+/simulation/
+/unsaved/
+/greybox_tmp/
+/atom_netlists/
+*.qws
+*.bak
+*.cmp.tdf
+*.rpt
+*.summary
+*.jdi
+*.sof
+*.pof
+*.sld
+
+*.done
+*.smsg
+*.pin
+
+
+# --- Všeobecné dočasné súbory ---
+*.log
+*.bak
+*.tmp
+*.hex
+
+# --- Konfigurácia editora VS Code ---
+.vscode/
+
+# submodules
+common/*
+!/common/.git
+
+# generovaná dokumentácia
+/docs_md/

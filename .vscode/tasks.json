@@ -1,0 +1,55 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Current Testbench Simulation",
+            "type": "shell",
+            "command": "${workspaceFolder}/scripts/simulate.sh",
+            "args": [
+                "${file}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            }
+        },
+        {
+            "label": "Show Last Waveform (GTKWave)",
+            "type": "shell",
+            // ZMENA TU: Pridané "DISPLAY=:0 " pred príkaz gtkwave
+            "command": "if [ -f \"${workspaceFolder}/build/dump.vcd\" ]; then DISPLAY=:0 gtkwave \"${workspaceFolder}/build/dump.vcd\" & else echo -e '\\033[0;31mChyba: Súbor dump.vcd v adresári build nebol nájdený. Spustite najprv simuláciu.\\033[0m'; fi",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "new",
+                "clear": true
+            }
+        },
+        {
+            "label": "Run Current Testbench Simulation (in New Window)",
+            "type": "shell",
+            // Tento príkaz otvorí nové okno gnome-terminal a v ňom spustí náš skript.
+            // Po skončení skriptu zostane terminál otvorený, aby ste videli výstup.
+            "command": "gnome-terminal -- /bin/bash -c \"'${workspaceFolder}/scripts/simulate.sh' '${file}'; exec bash\"",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Diagnose Task Environment",
+            "type": "shell",
+            "command": "echo '--- Shell Info ---'; echo \"Shell: $SHELL\"; echo \"Terminal: $TERM\"; echo; echo '--- User Info ---'; whoami; echo; echo '--- Graphics Info ---'; echo \"DISPLAY variable is: [$DISPLAY]\"; echo \"XAUTHORITY variable is: [$XAUTHORITY]\"; echo; echo '--- Path Info ---'; echo \"PATH is: [$PATH]\""
+        },
+        {
+            "label": "Build FPGA (Quartus)",
+            "type": "shell",
+            "command": "${workspaceFolder}/scripts/build.sh",
+            "group": "build"
+        }
+    ]
+}
