@@ -1,0 +1,23 @@
+set GENERATED_CONFIG 1
+set BOARD_TYPE {{ board_type }}
+
+# On-board peripherals
+set ONB_USE_SEG {{ 1 if onboard.get('seg') else 0 }}
+set ONB_USE_DIG {{ 1 if onboard.get('dig') else 0 }}
+set ONB_USE_LEDS {{ 1 if onboard.get('leds') else 0 }}
+set ONB_USE_BUTTONS {{ 1 if onboard.get('buttons') else 0 }}
+set ONB_USE_UART {{ 1 if onboard.get('uart') else 0 }}
+set ONB_USE_VGA {{ 1 if onboard.get('vga') else 0 }}
+set ONB_USE_SDRAM {{ 1 if onboard.get('sdram') else 0 }}
+set ONB_USE_ETH {{ 1 if onboard.get('eth') else 0 }}
+set ONB_USE_SDC {{ 1 if onboard.get('sdc') else 0 }}
+set ONB_USE_CAM {{ 1 if onboard.get('cam') else 0 }}
+
+# PMOD connectors
+{% for port, mod in pmod.items() %}set PMOD({{ port }}) "{{ mod }}"
+{% endfor %}
+{% if peripherals %}
+# Active peripheral base addresses
+{% for p in peripherals %}set PERIPH_BASE({{ p.inst }}) 0x{{ '%08X' % p.base }}
+{% endfor %}
+{% endif %}

@@ -9,8 +9,16 @@ peripherals:
 
   # --- CPU Core ---
   picorv32:
-    description: "RISC-V CPU Core"
+    description: "PicoRV32 RISC-V CPU (RV32I/IM)"
     type: cpu
+    files: [picorv32/picorv32.v]
+    interfaces:
+      - {name: bus, type: simple_bus, role: master}
+
+  vexriscv:
+    description: "VexRiscv RISC-V CPU (RV32IM, 5-stage pipeline)"
+    type: cpu
+    files: [vexriscv/VexRiscv.v, vexriscv/vexriscv_wrapper.sv]
     interfaces:
       - {name: bus, type: simple_bus, role: master}
 
@@ -35,12 +43,16 @@ peripherals:
     address_range: 0x10
     port_map: {clk: "clk_i", rst_n: "rst_ni"}
     interrupts:
-      - {name: rx_done,  id: 0}
-      - {name: tx_ready, id: 1}
+      - {name: rx_done, id: 0}
+    registers:
+      - {name: DATA, offset: 0x00, access: rw, width: 8,
+         desc: "W: TX byte  R: RX byte"}
+      - {name: STAT, offset: 0x04, access: ro, width: 2,
+         desc: "[0]=TX_BUSY  [1]=RX_VALID"}
     interfaces:
       - {name: bus,  type: simple_bus, role: slave}
       - {name: uart, type: serial,
-         signals: [{name: tx, dir: output}, {name: rx, dir: input}]}
+         signals: [{name: tx_o, dir: output, top_name: UART_TX, no_prefix: true}, {name: rx_i, dir: input, top_name: UART_RX, no_prefix: true}]}
 
   timer:
     module: "timer_top"
@@ -68,10 +80,14 @@ peripherals:
     bus_type: simple_bus
     needs_bus: true
     address_range: 0x08
+    port_map: {clk: "SYS_CLK", rst_n: "RESET_N"}
+    registers:
+      - {name: LED, offset: 0x00, access: rw, width: 6,
+         desc: "LED output register [5:0]"}
     interfaces:
       - {name: bus, type: simple_bus, role: slave}
       - {name: leds, type: gpio,
-         signals: [{name: led, dir: output, width: 6}]}
+         signals: [{name: led, dir: output, width: 6, top_name: ONB_LEDS, no_prefix: true}]}
 
   buttons:
     module: "buttons_top"
@@ -115,7 +131,7 @@ peripherals:
     interfaces:
       - {name: bus, type: simple_bus, role: slave}
       - {name: eth, type: interface,
-         signals: [{name: tx, dir: output}, {name: rx, dir: input}]}
+         signals: [{name: tx_o, dir: output}, {name: rx_i, dir: input}]}
 
   sdc:
     module: "sdc_interface"
@@ -141,6 +157,20 @@ peripherals:
                    {name: data,  dir: input, width: 8}]}
 
   # --- AXI peripherals (roz__ren_, parametrizovate_n_) ---
+
+  blink_test:
+    description: Minimal LED blink - HW verification test
+    module: blink_test
+    bus_type: none
+    needs_bus: false
+    params:
+      - {name: CLK_FREQ, default: 50_000_000}
+    interfaces:
+      - name: leds
+        type: gpio
+        signals:
+          - {name: ONB_LEDS, dir: output, width: 6}
+
   led_effects:
     description: Standalone LED effects demo module
     module: led_effects
@@ -173,7 +203,6 @@ peripherals:
         type: gpio
         signals:
           - {name: ONB_BUTTONS, dir: input, width: 2}
-
 
   axi_ram:
     module: "axi_ram_top"

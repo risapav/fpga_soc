@@ -1,0 +1,56 @@
+set_global_assignment -name TOP_LEVEL_ENTITY soc_top
+# =============================================================================
+# demo_vexriscv_hello.qsf
+# Target: QMTech EP4CE55F23C8
+# DO NOT EDIT - configure via board/project_config.yaml
+# =============================================================================
+
+# --- Quartus meta ---
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 25.1
+set_global_assignment -name LAST_QUARTUS_VERSION "25.1std.0 Lite Edition"
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 4
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+
+# --- Device ---
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE55F23C8
+set_global_assignment -name DEVICE_FILTER_PACKAGE FBGA
+set_global_assignment -name DEVICE_FILTER_PIN_COUNT 484
+set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 8
+
+# --- Top-level design ---
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
+
+# --- Timing constraints ---
+set_global_assignment -name SDC_FILE demo_vexriscv_hello.sdc
+
+# --- Generated source file list (updated by make gen) ---
+source gen/files.tcl
+set_global_assignment -name SYSTEMVERILOG_FILE gen/soc_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../src/soc/static/soc_ram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../src/soc/static/uart_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../src/soc/static/leds_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE gen/uart_top_regs.sv
+set_global_assignment -name SYSTEMVERILOG_FILE gen/leds_top_regs.sv
+set_global_assignment -name SYSTEMVERILOG_FILE gen/soc_interfaces.sv
+set_global_assignment -name VERILOG_FILE ../../src/cpu/vexriscv/VexRiscv.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../../src/cpu/vexriscv/vexriscv_wrapper.sv
+
+# --- Pre-flow: runs gen_config.py + HAL pin assignments ---
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../../scripts/pre_flow_demo.tcl"
+
+# --- Partition ---
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -entity demo_uart_hello -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -entity demo_uart_hello -section_id Top
+
+# --- Power settings ---
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+
+# --- Vsetko nizsie sa moze vymazat ---
+
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top

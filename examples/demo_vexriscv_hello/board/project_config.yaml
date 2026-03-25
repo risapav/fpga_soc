@@ -1,0 +1,30 @@
+# DEMO: demo_vexriscv_hello
+# VexRiscv (GenSmallest) + UART + LEDs
+# resetVector = 0x80000000 -> RAM mapped at both 0x0 and 0x80000000
+board:
+  type: qmtech_ep4ce55
+demo:
+  name: demo_vexriscv_hello
+  mode: soc
+soc:
+  cpu: vexriscv
+  ram_size: 4096
+  clock_freq: 50_000_000
+onboard:
+  leds:    true
+  seg:     false
+  dig:     false
+  buttons: false
+  uart:    true
+pmod:
+  J10: NONE
+  J11: NONE
+peripherals:
+  uart0:
+    type: uart
+    enabled: true
+    base: 0x90000000
+  leds0:
+    type: leds
+    enabled: true
+    base: 0x90001000

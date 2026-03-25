@@ -42,6 +42,7 @@ set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 # --- Pre-flow: Python generator -> HAL ---
 # Spusti gen_config.py, nacita generated_config.tcl, aplikuje HAL piny
 source gen/files.tcl
+set_global_assignment -name SYSTEMVERILOG_FILE ../../src/soc/static/led_effects.sv
 set_global_assignment -name SYSTEMVERILOG_FILE gen/soc_top.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../src/soc/static/seg7_counter.sv
 
@@ -49,3 +50,7 @@ set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:../../scripts/pre_f
 
 
 # --- Vsetko nizsie sa moze vymazat ---
+
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name TOP_LEVEL_ENTITY soc_top
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

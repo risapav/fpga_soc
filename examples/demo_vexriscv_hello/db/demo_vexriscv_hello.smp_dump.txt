@@ -1,0 +1,10 @@
+
+State Machine - |soc_top|vexriscv_wrapper:u_cpu|state
+Name state.IDLE state.DBUS_WAIT state.IBUS_WAIT 
+state.IDLE 0 0 0 
+state.IBUS_WAIT 1 0 1 
+state.DBUS_WAIT 1 1 0 
+
+State Machine - |soc_top|vexriscv_wrapper:u_cpu|VexRiscv:u_cpu|CsrPlugin_interrupt_targetPrivilege
+Name 
+CsrPlugin_interrupt_targetPrivilege.11 

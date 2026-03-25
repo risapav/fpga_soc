@@ -1,0 +1,57 @@
+# =============================================================================
+# Makefile.common - Shared build rules for all SoC demos
+# Include from demo Makefile:
+#   DEMO_NAME = demo_vexriscv_hello
+#   HAS_SW    = 1          # 1 = SoC mode (has sw/ subdir), 0 = standalone
+#   include ../../Makefile.common
+# =============================================================================
+
+ROOT    = $(shell cd ../../ && pwd)
+GEN     = $(ROOT)/board/generators/gen_config.py
+CFG     = board/project_config.yaml
+IP_REG  = $(ROOT)/board/config/ip_registry.yaml
+
+# Sentinel: gen/sections.lds exists after successful gen (SoC mode)
+#           gen/files.tcl exists after successful gen (standalone mode)
+ifeq ($(HAS_SW),1)
+SENTINEL = gen/sections.lds
+else
+SENTINEL = gen/files.tcl
+endif
+
+.PHONY: all gen sw clean
+
+# --- Default target ---
+ifeq ($(HAS_SW),1)
+all: sw
+else
+all: gen
+endif
+
+# --- Generator ---
+$(SENTINEL): $(CFG) $(IP_REG)
+	@python3 -c "open('$(CFG)','rb').read().decode('ascii')" || \
+	    (echo "[ERROR] $(CFG) contains non-ASCII characters!" && exit 1)
+	python3 $(GEN) --config $(CFG)
+	@echo "[OK]  RTL generated."
+
+gen: $(SENTINEL)
+
+# --- Firmware (SoC mode only) ---
+ifeq ($(HAS_SW),1)
+sw: $(SENTINEL)
+	@echo "[SW]  Building firmware..."
+	$(MAKE) -C sw
+	@echo "[OK]  Firmware built."
+endif
+
+# --- Clean ---
+clean:
+	@echo "[CLEAN] $(DEMO_NAME)..."
+	rm -rf gen/ db/ incremental_db/ out/
+	rm -f  *.rpt *.summary *.smsg *.pin *.done *.flow.rpt
+	rm -f  *.jdi *.sld *.asm.rpt *.fit.rpt *.map.rpt *.sta.rpt *.qpf.bak
+ifeq ($(HAS_SW),1)
+	$(MAKE) -C sw clean
+endif
+	@echo "[OK]  Clean done."

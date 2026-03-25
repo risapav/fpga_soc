@@ -1,0 +1,50 @@
+# =============================================================================
+# project_config.yaml — Hlavná SoC konfigurácia
+# FIX: Správne odsadenie (YAML je citlivý na medzery)
+# =============================================================================
+
+board:
+  type: qmtech_ep4ce55
+
+soc:
+  cpu: picorv32
+  ram_size: 4096
+  clock_freq: 50_000_000
+
+onboard:
+  seg:     true
+  dig:     true
+  leds:    false
+  buttons: true
+  uart:    false
+
+pmod:
+  J10: SEG
+  J11: NONE
+
+peripherals:
+  intc:
+    enabled: true
+    base: 0x80001000
+
+  seg7_0:
+    type: seg7
+    enabled: true
+    base: 0x80004000
+
+  timer0:
+    type: timer
+    enabled: true
+    base: 0x80005000
+
+  # Príklad: odkomentuj pre zapnutie UART
+  # uart0:
+  #   type: uart
+  #   enabled: true
+  #   base: 0x80006000
+
+  # Príklad: AXI RAM (ak máš AXI master)
+  # axi_ram0:
+  #   type: axi_ram
+  #   enabled: false
+  #   base: 0x90000000

@@ -1,15 +1,12 @@
-/* boot.S - Minimal RISC-V startup for PicoRV32
- * Sets up stack pointer and jumps to main()
- */
-
+# boot.S - Minimal RISC-V startup
+# Stack pointer from linker script (_stack_top) - auto-adapts to RAM size
 .section .text.start
 .globl _start
-
 _start:
-    /* Set stack pointer to top of RAM */
+    # Set stack pointer from linker symbol - works for any RAM size
     la   sp, _stack_top
 
-    /* Clear BSS section */
+    # Clear BSS
     la   t0, __bss_start
     la   t1, __bss_end
 bss_loop:
@@ -18,10 +15,6 @@ bss_loop:
     addi t0, t0, 4
     j    bss_loop
 bss_done:
-
-    /* Jump to C main */
     call main
-
-    /* Halt if main returns */
 halt:
     j halt

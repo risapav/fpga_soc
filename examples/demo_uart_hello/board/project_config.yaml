@@ -1,7 +1,6 @@
-# =============================================================================
-# project_config.yaml — Hlavná SoC konfigurácia
-# FIX: Správne odsadenie (YAML je citlivý na medzery)
-# =============================================================================
+# DEMO: uart_hello
+# First SoC mode demo - PicoRV32 + UART + LEDs
+# C program prints Hello World and blinks LED on each message
 
 board:
   type: qmtech_ep4ce55
@@ -12,34 +11,28 @@ soc:
   clock_freq: 50_000_000
 
 onboard:
-  seg:     true
-  dig:     true
-  leds:    false
-  buttons: true
-  uart:    false
+  leds:    true
+  seg:     false
+  dig:     false
+  buttons: false
+  uart:    true
 
 pmod:
   J10: NONE
   J11: NONE
 
+# CPU parameter overrides (merged with generator defaults)
+# Default: ENABLE_IRQ=1, LATCHED_MEM_RDATA=1, PROGADDR_RESET=0
+cpu_params:
+  ENABLE_MUL:        1
+  ENABLE_FAST_MUL:   0
+
 peripherals:
-  intc:
-    enabled: true
-    base: 0x80001000
-
-  timer0:
-    type: timer
-    enabled: true
-    base: 0x80005000
-
-  # Príklad: odkomentuj pre zapnutie UART
   uart0:
     type: uart
     enabled: true
-    base: 0x80006000
-
-  # Príklad: AXI RAM (ak máš AXI master)
-  # axi_ram0:
-  #   type: axi_ram
-  #   enabled: false
-  #   base: 0x90000000
+    base: 0x80002000
+  leds0:
+    type: leds
+    enabled: true
+    base: 0x80003000
