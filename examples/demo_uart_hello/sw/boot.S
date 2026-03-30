@@ -3,8 +3,9 @@
 .section .text.start
 .globl _start
 _start:
-    # Set stack pointer from linker symbol - works for any RAM size
-    la   sp, _stack_top
+    # Stack pointer = top of RAM (4096 = 0x1000)
+    lui  sp, %hi(_stack_top)
+    addi sp, sp, %lo(_stack_top)
 
     # Clear BSS
     la   t0, __bss_start
@@ -17,4 +18,4 @@ bss_loop:
 bss_done:
     call main
 halt:
-    j halt
+    j    halt

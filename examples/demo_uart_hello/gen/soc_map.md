@@ -1,5 +1,5 @@
 # SoC Memory Map
-Generated: 2026-03-30 22:25:56  |  Board: qmtech_ep4ce55  |  Clock: 50 MHz  |  RAM: 4096 B @ 0x00000000  |  latency: registered  |  reset_vector: 0x00000000
+Generated: 2026-03-30 22:51:21  |  Board: qmtech_ep4ce55  |  Clock: 50 MHz  |  RAM: 4096 B @ 0x00000000  |  latency: registered  |  reset_vector: 0x00000000
 
 ## Address Space
 

@@ -22,8 +22,15 @@ RAM_SIZE ?= 4096
 
 TARGET   = software
 SRCS     = boot.S main.c
-CFLAGS   = -march=rv32i -mabi=ilp32 -ffreestanding -O1
+CFLAGS   = -march=rv32im -mabi=ilp32 -ffreestanding -O1
 LDFLAGS  = -T $(SECTIONS_LD) -nostdlib -lgcc
+
+# Zoznam finálnych súborov v GEN_DIR
+OUTPUTS = $(GEN_DIR)/$(TARGET).elf \
+          $(GEN_DIR)/$(TARGET).bin \
+          $(GEN_DIR)/$(TARGET).hex \
+          $(GEN_DIR)/$(TARGET).mif \
+          $(GEN_DIR)/$(TARGET).lst
 
 .PHONY: all sw clean
 
