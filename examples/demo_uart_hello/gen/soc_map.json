@@ -1,0 +1,186 @@
+{
+  "meta": {
+    "schema_version": "v4",
+    "build_hash": "24fd89ced500",
+    "board": "qmtech_ep4ce55",
+    "cpu": "picorv32",
+    "clock_hz": 50000000,
+    "ram_size": 4096,
+    "mode": "soc"
+  },
+  "onboard": {
+    "leds": true,
+    "uart": true,
+    "buttons": false,
+    "clk": true,
+    "seg": false,
+    "dig": false
+  },
+  "pmod": {
+    "enabled": true,
+    "slots": {
+      "J10": "NONE",
+      "J11": "NONE"
+    },
+    "J10": "NONE",
+    "J11": "NONE"
+  },
+  "memory_map": {
+    "RAM": {
+      "base": "0x00000000",
+      "end": "0x00000FFF",
+      "size": 4096,
+      "module": "soc_ram"
+    },
+    "uart0": {
+      "inst": "uart0",
+      "type": "uart",
+      "module": "uart_top",
+      "base": "0x80002000",
+      "end": "0x8000200F",
+      "size": 16,
+      "bus_type": "simple_bus",
+      "addr_width": 4,
+      "params": {},
+      "registers": [
+        {
+          "name": "DATA",
+          "offset": 0,
+          "access": "rw",
+          "width": 8,
+          "reset": 0,
+          "desc": "W: TX byte  R: RX byte"
+        },
+        {
+          "name": "STAT",
+          "offset": 4,
+          "access": "ro",
+          "width": 2,
+          "reset": 0,
+          "desc": "[0]=TX_BUSY  [1]=RX_VALID"
+        }
+      ],
+      "irqs": [
+        {
+          "id": 0,
+          "name": "rx_done"
+        }
+      ],
+      "ext_ports": [
+        {
+          "name": "tx_o",
+          "dir": "output",
+          "width": 1,
+          "top_port": "UART_TX"
+        },
+        {
+          "name": "rx_i",
+          "dir": "input",
+          "width": 1,
+          "top_port": "UART_RX"
+        }
+      ]
+    },
+    "leds0": {
+      "inst": "leds0",
+      "type": "leds",
+      "module": "leds_top",
+      "base": "0x80003000",
+      "end": "0x80003007",
+      "size": 8,
+      "bus_type": "simple_bus",
+      "addr_width": 3,
+      "params": {},
+      "registers": [
+        {
+          "name": "LED",
+          "offset": 0,
+          "access": "rw",
+          "width": 6,
+          "reset": 0,
+          "desc": "LED output register [5:0]"
+        }
+      ],
+      "irqs": [],
+      "ext_ports": [
+        {
+          "name": "led",
+          "dir": "output",
+          "width": 6,
+          "top_port": "ONB_LEDS"
+        }
+      ]
+    }
+  },
+  "irqs": [
+    {
+      "id": 0,
+      "name": "UART0_RX_DONE_IRQ",
+      "peripheral": "uart0"
+    }
+  ],
+  "address_gaps": [
+    {
+      "start": "0x00001000",
+      "end": "0x80001FFF",
+      "size": 2147487744
+    },
+    {
+      "start": "0x80002010",
+      "end": "0x80002FFF",
+      "size": 4080
+    }
+  ],
+  "bus_fabrics": [
+    {
+      "bus_type": "simple_bus",
+      "data_width": 32,
+      "addr_width": 32,
+      "masters": [
+        "picorv32"
+      ],
+      "slaves": [
+        "uart0",
+        "leds0"
+      ],
+      "bridges": []
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "uart0",
+      "target": "SYS_CLK",
+      "kind": "clock"
+    },
+    {
+      "source": "uart0",
+      "target": "RESET_N",
+      "kind": "reset"
+    },
+    {
+      "source": "uart0",
+      "target": "simple_bus",
+      "kind": "bus"
+    },
+    {
+      "source": "uart0",
+      "target": "picorv32",
+      "kind": "irq"
+    },
+    {
+      "source": "leds0",
+      "target": "SYS_CLK",
+      "kind": "clock"
+    },
+    {
+      "source": "leds0",
+      "target": "RESET_N",
+      "kind": "reset"
+    },
+    {
+      "source": "leds0",
+      "target": "simple_bus",
+      "kind": "bus"
+    }
+  ]
+}
