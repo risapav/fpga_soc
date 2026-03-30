@@ -20,20 +20,14 @@
 module seg7_counter #(
     parameter int CLK_FREQ = 50_000_000
 ) (
-    input  wire        SYS_CLK,
-    input  wire        RESET_N,
+    input  wire        clk,
+    input  wire        rst_n,
     // Display
     output logic [7:0] ONB_SEG,
     output logic [2:0] ONB_DIG,
     // Buttons (active low)
     input  wire  [1:0] ONB_BUTTONS
 );
-
-    // -------------------------------------------------------------------------
-    // Local aliases
-    // -------------------------------------------------------------------------
-    wire clk = SYS_CLK;
-    wire rst_n = RESET_N;
 
     // -------------------------------------------------------------------------
     // 1-second tick

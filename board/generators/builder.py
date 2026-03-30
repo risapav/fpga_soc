@@ -420,11 +420,16 @@ class ModelBuilder:
                         width=int(sig.get("width", 1)),
                         top_port=sig["name"],
                     ))
+            _port_map = meta.get("port_map", {})
+            _clk_port = _port_map.get("clk",   "SYS_CLK")
+            _rst_port = _port_map.get("rst_n",  "RESET_N")
             mods.append(StandaloneModule(
                 inst      = inst,
                 module    = mod_type,
                 params    = dict(inst_cfg.get("params", {})),
                 ext_ports = ports,
                 files     = list(meta.get("files", [])),
+                clk_port  = _clk_port,
+                rst_port  = _rst_port,
             ))
         return mods

@@ -219,6 +219,7 @@ peripherals:
     needs_bus: false
     params:
       - {name: CLK_FREQ, default: 50_000_000}
+    port_map: {clk: "clk", rst_n: "rst_n"}
     interfaces:
       - name: display
         type: display

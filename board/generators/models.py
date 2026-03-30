@@ -409,6 +409,8 @@ class StandaloneModule:
     params:    Dict[str, Any]
     ext_ports: List[ExtPort]
     files:     List[str] = field(default_factory=list)
+    clk_port:  str       = "SYS_CLK"   # resolved from ip_registry port_map
+    rst_port:  str       = "RESET_N"   # resolved from ip_registry port_map
 
 
 # =============================================================================

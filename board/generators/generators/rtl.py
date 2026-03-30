@@ -125,8 +125,8 @@ class RTLGenerator:
                 lines.append(f"  ) u_{mod.inst} (")
             else:
                 lines.append(f"  {mod.module} u_{mod.inst} (")
-            lines.append(f"    .SYS_CLK (SYS_CLK),")
-            lines.append(f"    .RESET_N (RESET_N)")
+            lines.append(f"    .{mod.clk_port} (SYS_CLK),")
+            lines.append(f"    .{mod.rst_port} (RESET_N)")
             for ep in mod.ext_ports:
                 lines.append(f"    ,.{ep.name} ({ep.top_port})")
             lines.append(f"  );")
