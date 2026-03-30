@@ -6,7 +6,7 @@ set ONB_USE_SEG 0
 set ONB_USE_DIG 0
 set ONB_USE_LEDS 1
 set ONB_USE_BUTTONS 0
-set ONB_USE_UART 1
+set ONB_USE_UART 0
 set ONB_USE_VGA 0
 set ONB_USE_SDRAM 0
 set ONB_USE_ETH 0
@@ -14,8 +14,5 @@ set ONB_USE_SDC 0
 set ONB_USE_CAM 0
 
 # PMOD connectors
-set PMOD(J10) "NONE"
-set PMOD(J11) "NONE"
-# Active peripheral base addresses
-set PERIPH_BASE(uart0) 0x90000000
-set PERIPH_BASE(leds0) 0x90001000
+set PMOD(J10) "LED"
+set PMOD(J11) "LED"

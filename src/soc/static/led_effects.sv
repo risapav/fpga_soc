@@ -17,8 +17,8 @@
 module led_effects #(
     parameter int CLK_FREQ = 50_000_000
 ) (
-    input  wire        SYS_CLK,
-    input  wire        RESET_N,
+    input  wire        clk_i,
+    input  wire        rst_ni,
     output logic [5:0] ONB_LEDS,
     output logic [7:0] PMOD_J10_P,
     output logic [7:0] PMOD_J11_P
@@ -34,8 +34,8 @@ module led_effects #(
 
     assign tick_1s = (clk_cnt == ONE_SEC[($clog2(CLK_FREQ)-1):0]);
 
-    always_ff @(posedge SYS_CLK or negedge RESET_N) begin
-        if (!RESET_N)        clk_cnt <= '0;
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni)        clk_cnt <= '0;
         else if (tick_1s)   clk_cnt <= '0;
         else                clk_cnt <= clk_cnt + 1;
     end
@@ -45,8 +45,8 @@ module led_effects #(
     // -------------------------------------------------------------------------
     logic [5:0] led_shift;
 
-    always_ff @(posedge SYS_CLK or negedge RESET_N) begin
-        if (!RESET_N)        led_shift <= 6'b000001;
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni)        led_shift <= 6'b000001;
         else if (tick_1s)   led_shift <= {led_shift[4:0], led_shift[5]};
     end
 
@@ -58,8 +58,8 @@ module led_effects #(
     // -------------------------------------------------------------------------
     logic [3:0] fill_cnt;
 
-    always_ff @(posedge SYS_CLK or negedge RESET_N) begin
-        if (!RESET_N)        fill_cnt <= '0;
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni)        fill_cnt <= '0;
         else if (tick_1s)   fill_cnt <= (fill_cnt == 4'd8) ? '0 : fill_cnt + 1;
     end
 
@@ -73,8 +73,8 @@ module led_effects #(
     logic [7:0] cylon_pos;
     dir_t       cylon_dir;
 
-    always_ff @(posedge SYS_CLK or negedge RESET_N) begin
-        if (!RESET_N) begin
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni) begin
             cylon_pos <= 8'b0000_0001;
             cylon_dir <= DIR_RIGHT;
         end else if (tick_1s) begin

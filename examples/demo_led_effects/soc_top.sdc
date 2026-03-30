@@ -1,5 +1,5 @@
 # =============================================================================
-# demo_led_effects.sdc — Timing Constraints
+# demo_vexriscv_hello.sdc — Timing Constraints
 # Target: QMTech EP4CE55F23, 50 MHz
 # =============================================================================
 

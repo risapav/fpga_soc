@@ -8,13 +8,13 @@
 //   dBus - data load/store
 //
 // This wrapper arbitrates: dBus has priority over iBus.
-// Reset: VexRiscv active-HIGH, our system active-LOW RESET_N.
+// Reset: VexRiscv active-HIGH, our system active-LOW rst_ni.
 // =============================================================================
 `default_nettype none
 
 module vexriscv_wrapper (
-    input  wire        SYS_CLK,
-    input  wire        RESET_N,
+    input  wire        clk_i,
+    input  wire        rst_ni,
     // Unified bus interface to soc_top
     output logic        bus_valid,
     output logic [31:0] bus_addr,
@@ -27,7 +27,7 @@ module vexriscv_wrapper (
     input  wire         external_irq
 );
 
-    wire reset = ~RESET_N;
+    wire reset = ~rst_ni;
 
     // iBus signals
     wire        iBus_cmd_valid;
@@ -48,7 +48,7 @@ module vexriscv_wrapper (
     wire [31:0] dBus_rsp_data;
 
     VexRiscv u_cpu (
-        .clk                        (SYS_CLK),
+        .clk                        (clk_i),
         .reset                      (reset),
         .iBus_cmd_valid             (iBus_cmd_valid),
         .iBus_cmd_ready             (iBus_cmd_ready),
@@ -83,8 +83,8 @@ module vexriscv_wrapper (
     reg        ibus_rsp_r;
     reg        dbus_rsp_r;
 
-    always_ff @(posedge SYS_CLK or negedge RESET_N) begin
-        if (!RESET_N) begin
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni) begin
             state     <= IDLE;
             ibus_rsp_r <= 1'b0;
             dbus_rsp_r <= 1'b0;
@@ -151,7 +151,9 @@ module vexriscv_wrapper (
     end
 
     // iBus responses
-    assign iBus_cmd_ready        = (state == IBUS_WAIT) && bus_ready;
+    //assign iBus_cmd_ready        = (state == IBUS_WAIT) && bus_ready;
+    assign iBus_cmd_ready = ((state == IDLE && iBus_cmd_valid && !dBus_cmd_valid)
+                         || state == IBUS_WAIT) && bus_ready;
     assign iBus_rsp_valid        = ibus_rsp_r;
     assign iBus_rsp_payload_inst = rdata_r;
 

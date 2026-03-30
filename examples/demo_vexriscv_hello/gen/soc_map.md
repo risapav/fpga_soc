@@ -1,5 +1,5 @@
 # SoC Memory Map
-Generated: 2026-03-25 21:11:11  |  Board: qmtech_ep4ce55  |  Clock: 50 MHz  |  RAM: 4096 bytes
+Generated: 2026-03-26 19:16:47  |  Board: qmtech_ep4ce55  |  Clock: 50 MHz  |  RAM: 4096 bytes
 
 ## Address Space
 

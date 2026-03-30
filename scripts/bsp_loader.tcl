@@ -1,22 +1,33 @@
-# ============================================================================
-# BSP LOADER (Refactored)
-# ============================================================================
+# =============================================================================
+# @file: bsp_loader.tcl
+# @brief: HAL Loader využívajúci absolútne cesty.
+# =============================================================================
 
-# --- 1. Validácia zdroja konfigurácie ---
-if {![info exists BOARD_TYPE]} {
-    post_message -type error "BSP Loader: BOARD_TYPE not defined! (generated_config.tcl missing?)"
-    qexit -error
+# Ak root_dir neexistuje (napr. pri ručnom spustení), vypočítame ho
+if {![info exists root_dir]} {
+  set root_dir [file normalize [file join [pwd] ".." ".."]]
 }
 
-post_message -type info "BSP: Using configuration for board: $BOARD_TYPE"
+if {![info exists BOARD_TYPE]} {
+  post_message -type error "BSP Loader: BOARD_TYPE nie je definovaný!"
+  return -code error
+}
 
-# --- 2. Load HAL ---
-set HAL_SCRIPT "board/bsp/hal_${BOARD_TYPE}.tcl"
+# Vytvorenie ABSOLÚTNEJ cesty k HAL skriptu
+set hal_path [file join $root_dir "board" "bsp" "hal_${BOARD_TYPE}.tcl"]
 
-if {[file exists $HAL_SCRIPT]} {
-    source $HAL_SCRIPT
-    post_message -type info "BSP Loader: HAL loaded: $HAL_SCRIPT"
+post_message -type info "BSP: Hľadám HAL skript na: $hal_path"
+
+if {[file exists $hal_path]} {
+  if {[catch {source $hal_path} err]} {
+    post_message -type error "BSP Loader: Chyba v HAL skripte: $err"
+    return -code error
+  }
+  post_message -type info "BSP Loader: HAL úspešne načítaný."
 } else {
-    post_message -type error "BSP Loader: HAL script not found: $HAL_SCRIPT"
-    qexit -error
+  post_message -type error "BSP Loader: Súbor nenájdený: $hal_path"
+  # Vypíšeme obsah adresára pre ladenie, ak súbor chýba
+  set bsp_dir [file dirname $hal_path]
+  post_message -type info "BSP Loader: Obsah adresára $bsp_dir : [glob -nocomplain -directory $bsp_dir *]"
+  return -code error
 }

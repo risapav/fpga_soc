@@ -12,8 +12,8 @@
 `default_nettype none
 
 module leds_top (
-    input  wire        SYS_CLK,
-    input  wire        RESET_N,
+    input  wire        clk_i,
+    input  wire        rst_ni,
     input  wire [5:0]  addr_i,
     input  wire [31:0] wdata_i,
     input  wire        we_i,
@@ -23,8 +23,8 @@ module leds_top (
 
     logic [5:0] led_reg;
 
-    always_ff @(posedge SYS_CLK or negedge RESET_N) begin
-        if (!RESET_N)
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni)
             led_reg <= '0;
         else if (we_i && addr_i[2:0] == 3'h0)
             led_reg <= wdata_i[5:0];

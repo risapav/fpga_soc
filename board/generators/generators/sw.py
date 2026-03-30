@@ -28,6 +28,9 @@ class SWGenerator:
             "",
             f"#define SYS_CLK_HZ     {m.clock_freq}UL",
             f"#define RAM_SIZE_BYTES {m.ram_size}U",
+        f"#define RAM_BASE           0x{m.ram_base:08X}UL",
+        f"#define RESET_VECTOR       0x{m.reset_vector:08X}UL",
+        f"#define STACK_SIZE_BYTES   ({m.ram_size} * {m.stack_percent} / 100U)",
         ]
         for p in m.peripherals:
             lines.append("")
@@ -66,7 +69,13 @@ class SWGenerator:
         print("  -> soc_irq.h")
 
     def generate_linker_script(self, path: str) -> None:
-        content = render("sections.lds.j2", ram_size=self.m.ram_size)
+        content = render(
+            "sections.lds.j2",
+            ram_size      = self.m.ram_size,
+            ram_base      = self.m.ram_base,
+            reset_vector  = self.m.reset_vector,
+            stack_percent = self.m.stack_percent,
+        )
         write(path, content)
         print("  -> sections.lds")
 
@@ -83,11 +92,13 @@ class SWGenerator:
         lines = [
             "# SoC Memory Map\n",
             f"Generated: {ts}  |  Board: {m.board_type}  |  "
-            f"Clock: {m.clock_freq//1_000_000} MHz  |  RAM: {m.ram_size} bytes\n\n",
+            f"Clock: {m.clock_freq//1_000_000} MHz  |  "
+            f"RAM: {m.ram_size} B @ 0x{m.ram_base:08X}  |  "
+            f"latency: {m.ram_latency}  |  reset_vector: 0x{m.reset_vector:08X}\n\n",
             "## Address Space\n\n",
             "| Region | Base | End | Size | Module |\n",
             "|--------|------|-----|------|--------|\n",
-            f"| RAM    | 0x00000000 | 0x{m.ram_size-1:08X} | {m.ram_size} B | soc_ram |\n",
+            f"| RAM | 0x{m.ram_base:08X} | 0x{m.ram_base+m.ram_size-1:08X} | {m.ram_size} B" f" | soc_ram | latency={m.ram_latency} |\n",
         ]
         for p in m.peripherals:
             lines.append(

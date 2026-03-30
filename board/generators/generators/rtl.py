@@ -142,10 +142,15 @@ class RTLGenerator:
         m = self.m
         L = []  # lines
 
+        # LATCHED_MEM_RDATA must match ram_latency:
+        #   registered    -> 1  (CPU waits one cycle, RAM registered output)
+        #   combinational -> 0  (CPU expects data same cycle)
+        _latched = "1" if m.ram_latency == "registered" else "0"
+        _progaddr = f"32'h{m.reset_vector:08X}"
         default_cpu = {
             "ENABLE_IRQ":        "1",
-            "LATCHED_MEM_RDATA": "1",
-            "PROGADDR_RESET":    "32'h0000_0000",
+            "LATCHED_MEM_RDATA": _latched,
+            "PROGADDR_RESET":    _progaddr,
         }
         cpu_params = {**default_cpu, **m.cpu_params}
         n = len(m.peripherals)
@@ -183,12 +188,15 @@ class RTLGenerator:
 
         # Address decoder
         L += ["  // Address decoder", "  always_comb begin"]
-        if m.cpu_type == 'vexriscv':
-            # VexRiscv resetVector=0x80000000: map RAM at both 0x0 and 0x80000000
-            L.append(f"    ram_sel = (bus.addr < 32'h{m.ram_size:08X}) ||")
-            L.append(f"              (bus.addr >= 32'h80000000 && bus.addr < 32'h{0x80000000+m.ram_size:08X});")
+        # RAM decode: primary mapping at ram_base, optional alias
+        _rb  = m.ram_base
+        _rs  = m.ram_size
+        if m.ram_alias is not None:
+            _ra = m.ram_alias
+            L.append(f"    ram_sel = (bus.addr >= 32'h{_rb:08X} && bus.addr < 32'h{_rb+_rs:08X}) ||")
+            L.append(f"              (bus.addr >= 32'h{_ra:08X} && bus.addr < 32'h{_ra+_rs:08X});")
         else:
-            L.append(f"    ram_sel = (bus.addr < 32'h{m.ram_size:08X});")
+            L.append(f"    ram_sel = (bus.addr >= 32'h{_rb:08X} && bus.addr < 32'h{_rb+_rs:08X});")
         for p in m.peripherals:
             L.append(f"    {p.inst}_sel = "
                      f"(bus.addr >= 32'h{p.base:08X}) && "
@@ -197,14 +205,26 @@ class RTLGenerator:
 
         # RAM ready
         L += [
-            "  // RAM read: 1-cycle registered ready for LATCHED_MEM_RDATA=1",
-            "  logic ram_sel_r;",
-            "  always_ff @(posedge SYS_CLK or negedge RESET_N)",
-            "    if (!RESET_N)        ram_sel_r <= 1'b0;",
-            "    else if (ram_sel_r)  ram_sel_r <= 1'b0;",
-            "    else                 ram_sel_r <= ram_sel & bus.valid;",
-            "",
-        ]
+        ]  # end of address decoder block
+
+        # ── RAM ready signal: registered or combinational ──────────────────
+        if m.ram_latency == "registered":
+            L += [
+                "  // RAM read: 1-cycle registered ready (ram_latency=registered)",
+                "  logic ram_sel_r;",
+                "  always_ff @(posedge SYS_CLK or negedge RESET_N)",
+                "    if (!RESET_N)        ram_sel_r <= 1'b0;",
+                "    else if (ram_sel_r)  ram_sel_r <= 1'b0;",
+                "    else                 ram_sel_r <= ram_sel & bus.valid;",
+                "",
+            ]
+        else:  # combinational
+            L += [
+                "  // RAM read: combinational ready (ram_latency=combinational)",
+                "  logic ram_sel_r;",
+                "  assign ram_sel_r = ram_sel & bus.valid;",
+                "",
+            ]
 
         # Registered periph select for LATCHED_MEM_RDATA=1
         L += [
@@ -241,18 +261,21 @@ class RTLGenerator:
 
         # CPU instantiation - depends on cpu_type
         if m.cpu_type == 'vexriscv':
+            # port_map from ip_registry.yaml via model.cpu_port_map
+            _clk_port = m.cpu_port_map.get("clk",   "SYS_CLK")
+            _rst_port = m.cpu_port_map.get("rst_n",  "RESET_N")
             L += [
-                "  // VexRiscv CPU (via wrapper)",
+                f"  // VexRiscv CPU (via wrapper)  reset_vector=0x{m.reset_vector:08X}",
                 "  vexriscv_wrapper u_cpu (",
-                "    .SYS_CLK      (SYS_CLK),",
-                "    .RESET_N      (RESET_N),",
+                f"    .{_clk_port:<12} (SYS_CLK),",
+                f"    .{_rst_port:<12} (RESET_N),",
                 "    .bus_valid    (bus.valid),",
                 "    .bus_addr     (bus.addr),",
                 "    .bus_wdata    (bus.wdata),",
                 "    .bus_be       (bus.be),",
                 "    .bus_rdata    (bus.rdata),",
                 "    .bus_ready    (bus.ready),",
-                "    .timer_irq   (1\'b0),",
+                "    .timer_irq    (1\'b0),",
                 "    .external_irq (cpu_irq)",
                 "  );",
                 "",
@@ -279,17 +302,24 @@ class RTLGenerator:
                 "",
             ]
 
-        # RAM
+        # RAM -- all names/ports driven by model (registry + project_config.yaml)
+        _pm    = m.ram_port_map
+        _clk   = _pm.get('clk',   'clk')
+        _addr  = _pm.get('addr',  'addr')
+        _be    = _pm.get('be',    'be')
+        _we    = _pm.get('we',    'we')
+        _wdata = _pm.get('wdata', 'wdata')
+        _rdata = _pm.get('rdata', 'rdata')
         L += [
-            f"  // On-chip RAM ({m.ram_size} bytes)",
-            f"  soc_ram #(.SIZE_BYTES({m.ram_size}), .INIT_FILE(\"gen/software.mif\"))",
-            "  u_ram (",
-            f"    .clk  (SYS_CLK),",
-            f"    .addr (bus.addr[{m.ram_addr_top}:2]),",
-            "    .be   (bus.be),",
-            "    .we   (|bus.be & ram_sel & bus.valid),",
-            "    .wdata(bus.wdata),",
-            "    .rdata(periph_rdata[0])",
+            f"  // On-chip RAM ({m.ram_size} bytes @ 0x{m.ram_base:08X}, latency={m.ram_latency})",
+            f"  {m.ram_module} #(.SIZE_BYTES({m.ram_size}), .INIT_FILE(\"{m.init_file}\"))",
+            f"  {m.ram_inst} (",
+            f"    .{_clk:<6}(SYS_CLK),",
+            f"    .{_addr:<6}(bus.addr[{m.ram_addr_top}:2]),",
+            f"    .{_be:<6}(bus.be),",
+            f"    .{_we:<6}(|bus.be & ram_sel & bus.valid),",
+            f"    .{_wdata:<6}(bus.wdata),",
+            f"    .{_rdata:<6}(periph_rdata[0])",
             "  );",
             "",
         ]

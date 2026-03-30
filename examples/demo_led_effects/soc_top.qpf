@@ -4,4 +4,4 @@ DATE = "00:00:00 January 01, 2026"
 
 # Revisions
 
-PROJECT_REVISION = "demo_led_effects"
+PROJECT_REVISION = "soc_top"

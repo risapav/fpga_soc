@@ -1,57 +1,64 @@
 #!/usr/bin/env python3
 """
 @file bin2hex.py
-@brief Binary to Verilog Hex converter
-@details Converts a raw binary file to a 32-bit word hex format 
-         compatible with $readmemh for Intel FPGA RAM initialization.
+@brief Binary to Verilog Hex converter (v3)
+@details Konvertuje surovú binárku na 32-bitový hex formát kompatibilný s $readmemh.
+         Zabezpečuje, že výsledný súbor má presne špecifikovaný počet slov.
 """
 
 import sys
-import struct
+import argparse
 
-def bin2hex(bin_path, hex_path, size_bytes):
+def bin2hex(bin_path, hex_path, size_bytes, endian="little"):
+    # --- 1. Validácia parametrov ---
+    if size_bytes % 4 != 0:
+        print(f"[ERROR] size_bytes ({size_bytes}) musí byť násobok 4 (32-bit slovo).")
+        sys.exit(1)
+
+    # --- 2. Načítanie binárnych dát ---
     try:
         with open(bin_path, 'rb') as f:
             bindata = f.read()
-    except Exception as e:
-        print(f"Error opening binary file: {e}")
+    except OSError as e:
+        print(f"[ERROR] Nepodarilo sa otvoriť binárku: {e}")
         sys.exit(1)
 
-    # Padding binary to match RAM size if necessary
+    # --- 3. Kontrola pretečenia ---
     if len(bindata) > size_bytes:
-        print(f"Error: Binary size ({len(bindata)}) exceeds RAM size ({size_bytes})")
+        print(f"[ERROR] Binárka ({len(bindata)} B) je väčšia ako RAM ({size_bytes} B)!")
         sys.exit(1)
-        
-    # Process 4 bytes (32-bit word) at a time
+
+    # --- 4. Spracovanie slov a Padding ---
+    # Doplníme dáta nulami, aby výsledný HEX mal presne 'size_bytes'
+    padded_data = bindata + b'\x00' * (size_bytes - len(bindata))
     words = []
-    for i in range(0, len(bindata), 4):
-        word_chunk = bindata[i:i+4]
-        # Pad last word with zeros if it's shorter than 4 bytes
-        if len(word_chunk) < 4:
-            word_chunk = word_chunk.ljust(4, b'\x00')
-        
-        # Convert to 32-bit Little Endian integer
-        word = struct.unpack('<I', word_chunk)[0]
+
+    for i in range(0, len(padded_data), 4):
+        chunk = padded_data[i:i+4]
+        # Prevod bajtov na 32-bit integer podľa endianity
+        word = int.from_bytes(chunk, byteorder=endian)
         words.append(f"{word:08x}")
 
-    # Write to HEX file
+    # --- 5. Zápis do HEX súboru ---
     try:
         with open(hex_path, 'w') as f:
             for w in words:
                 f.write(w + '\n')
-        print(f"Successfully converted {bin_path} to {hex_path} ({len(words)} words)")
-    except Exception as e:
-        print(f"Error writing hex file: {e}")
+        print(f"[OK] {bin_path} -> {hex_path} ({len(words)} slov, endian={endian})")
+    except OSError as e:
+        print(f"[ERROR] Chyba pri zápise HEX: {e}")
         sys.exit(1)
+
+def _parse_int(s):
+    """Pomocná funkcia pre argparse: spracuje 4096 aj 0x1000."""
+    return int(s, 0)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("Usage: python3 bin2hex.py <input.bin> <output.hex> <size_in_bytes>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Bin2Hex pre Verilog $readmemh")
+    parser.add_argument("input",      help="Vstupný .bin súbor")
+    parser.add_argument("output",     help="Výstupný .hex súbor")
+    parser.add_argument("size",       type=_parse_int, help="Veľkosť RAM v bajtoch")
+    parser.add_argument("--big",      action="store_true", help="Použiť Big-Endian (predvolený je Little)")
 
-    bin_path = sys.argv[1]
-    hex_path = sys.argv[2]
-    size_bytes = int(sys.argv[3])
-    
-    bin2hex(bin_path, hex_path, size_bytes)
-    
+    args = parser.parse_args()
+    bin2hex(args.input, args.output, args.size, "big" if args.big else "little")

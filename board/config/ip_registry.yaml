@@ -12,15 +12,40 @@ peripherals:
     description: "PicoRV32 RISC-V CPU (RV32I/IM)"
     type: cpu
     files: [picorv32/picorv32.v]
+    reset_vector: 0x00000000   # CPU boots from address 0x0
+    ram_base:     0x00000000   # RAM at 0x0
+    ram_alias:    ~            # no alias
     interfaces:
       - {name: bus, type: simple_bus, role: master}
 
   vexriscv:
     description: "VexRiscv RISC-V CPU (RV32IM, 5-stage pipeline)"
     type: cpu
+    port_map: {clk: "clk_i", rst_n: "rst_ni"}
     files: [vexriscv/VexRiscv.v, vexriscv/vexriscv_wrapper.sv]
+    reset_vector: 0x80000000   # GenSmallest boots from 0x80000000
+    ram_base:     0x80000000   # primary RAM mapping
+    ram_alias:    0x00000000   # alias at 0x0 for data access
     interfaces:
       - {name: bus, type: simple_bus, role: master}
+
+  # --- On-chip memory ---
+  soc_ram:
+    description: "On-chip synchronous RAM with MIF initialisation"
+    type: memory
+    module: soc_ram
+    bus_type: none
+    needs_bus: false
+    params:
+      - {name: SIZE_BYTES, default: 4096}
+      - {name: INIT_FILE,  default: "gen/software.mif"}
+    port_map:
+      clk:   "clk"
+      addr:  "addr"
+      be:    "be"
+      we:    "we"
+      wdata: "wdata"
+      rdata: "rdata"
 
   # --- System peripherals ---
   intc:
@@ -80,7 +105,7 @@ peripherals:
     bus_type: simple_bus
     needs_bus: true
     address_range: 0x08
-    port_map: {clk: "SYS_CLK", rst_n: "RESET_N"}
+    port_map: {clk: "clk_i", rst_n: "rst_ni"}
     registers:
       - {name: LED, offset: 0x00, access: rw, width: 6,
          desc: "LED output register [5:0]"}
@@ -178,6 +203,7 @@ peripherals:
     needs_bus: false
     params:
       - {name: CLK_FREQ, default: 50_000_000}
+    port_map: {clk: "clk_i", rst_n: "rst_ni"}
     interfaces:
       - name: leds
         type: gpio
