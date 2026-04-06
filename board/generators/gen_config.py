@@ -1,33 +1,62 @@
-#!/usr/bin/env python3
 """
-gen_config.py  --  QMTech Cyclone IV RISC-V SoC Framework Generator  (v3)
-=========================================================================
-Changes vs v2:
-  - JsonExporter integrated: soc_map.json written alongside .h / .md
-  - GraphvizExporter integrated: soc_graph.dot (+ optional PNG) generated
-  - dry-run shows topological sort order, bus fabrics, bridge warnings
-  - --explain <inst>: prints registry entry + params + registers for one peripheral
-  - --graph: force graphviz export even without --dry-run
-  - --graph-clk-rst: include clock/reset edges in graph
-  - --warnings-as-errors: treat all [WARN] as fatal (unchanged from v2)
-  - sys.exit only at the CLI boundary (unchanged from v2)
+gen_config.py - SoC Framework Orchestrator (v6)
+================================================
+Changes vs v5:
+  - Build pipeline is now fully connected:
+      Loader -> Builder -> RTLGenerator / SWGenerator / TCLGenerator / Exporters
+  - Supports two registry modes (automatically detected):
+      A) Classic:  --registry path/to/ip_registry.yaml
+      B) Plugin:   paths.ip_plugins in project_config.yaml (no --registry needed)
+      C) Both:     base registry + plugin overrides
+  - Exit codes:
+      0  success
+      1  configuration / schema / validation error
+      2  critical runtime error (IO, template, unexpected)
+  - Output contract (gen/ subdirs created unconditionally):
+      gen/rtl/soc_interfaces.sv
+      gen/rtl/soc_top.sv
+      gen/rtl/<inst>_regs.sv    (one per peripheral with registers)
+      gen/sw/soc_map.h
+      gen/sw/soc_irq.h
+      gen/sw/sections.lds
+      gen/sw/ram_size.mk
+      gen/doc/soc_map.md
+      gen/doc/soc_graph.dot
+      gen/doc/soc_map.json
+      gen/hal/board.tcl
+      gen/tcl/generated_config.tcl
+      gen/tcl/files.tcl
 """
 
 import os
 import sys
-import hashlib
 import argparse
-import loader as _loader_mod  # for _WARNINGS_AS_ERRORS flag
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from models import ConfigError, SoCMode, SoCModel
 from loader import ConfigLoader
 from builder import ModelBuilder
+from models import ConfigError, SoCMode
+
+# Generator imports (these are in generators/ sub-package)
+try:
+    from generators.rtl import RTLGenerator
+    from generators.sw  import SWGenerator
+    from generators.tcl import TCLGenerator
+except ImportError as _imp_err:
+    # Allow running from repo root where generators/ is a sibling directory
+    _here = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, _here)
+    try:
+        from generators.rtl import RTLGenerator
+        from generators.sw  import SWGenerator
+        from generators.tcl import TCLGenerator
+    except ImportError:
+        raise ImportError(
+            f"Cannot import generator modules: {_imp_err}\n"
+            "Ensure generators/rtl.py, sw.py, tcl.py exist."
+        ) from _imp_err
+
 from export import GraphvizExporter, JsonExporter
-from generators.rtl import RTLGenerator
-from generators.sw  import SWGenerator
-from generators.tcl import TCLGenerator
+from timing_loader import TimingLoader
 
 
 # =============================================================================
@@ -36,272 +65,375 @@ from generators.tcl import TCLGenerator
 
 class SoCOrchestrator:
 
-    def __init__(self, project_cfg_override=None):
-        self.script_dir = os.path.dirname(os.path.abspath(__file__))
-        self.root_dir   = os.path.normpath(
-            os.path.join(self.script_dir, "..", ".."))
-        cfg_dir     = os.path.join(self.root_dir, "board", "config")
-        default_cfg = os.path.join(cfg_dir, "project_config.yaml")
-        proj_path   = os.path.abspath(project_cfg_override or default_cfg)
-        reg_path    = os.path.join(cfg_dir, "ip_registry.yaml")
-        loader      = ConfigLoader(proj_path, reg_path)
-        builder     = ModelBuilder(loader, proj_path, self.root_dir)
-        self.model  = builder.build()
-        self._loader = loader
+    def __init__(self, config_path: str, registry_path: str = "",
+                 out_dir: str = "gen", verbose: bool = False):
+        self.verbose  = verbose
+        self.out_dir  = os.path.abspath(out_dir)
+        self._setup_output_dirs()
 
-    # -------------------------------------------------------------------------
+        script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    def generate_all(self, dry_run=False, export_graph=False,
-                     graph_clk_rst=False) -> None:
-        m       = self.model
-        gen_dir = m.gen_dir
-        cfg_dir = m.cfg_dir
+        # Auto-detect base registry path if not explicitly given
+        if not registry_path:
+            candidate = os.path.normpath(
+                os.path.join(script_dir, "..", "board", "config",
+                             "ip_registry.yaml"))
+            if os.path.exists(candidate):
+                registry_path = candidate
+                self.log(f"Auto-detected registry: {candidate}")
+            else:
+                self.log("No ip_registry.yaml found -- relying on ip_plugins only")
 
-        if dry_run:
-            self._dry_run_report()
-            return
+        self.log("=" * 60)
+        self.log("SoC Build System  (gen_config.py v6)")
+        self.log(f"  Config:   {os.path.abspath(config_path)}")
+        if registry_path:
+            self.log(f"  Registry: {registry_path}")
+        self.log(f"  Output:   {self.out_dir}")
+        self.log("=" * 60)
 
-        os.makedirs(gen_dir, exist_ok=True)
-        os.makedirs(cfg_dir, exist_ok=True)
+        # Phase 1: LOAD
+        try:
+            self.loader = ConfigLoader(config_path, registry_path)
+        except ConfigError as e:
+            self.error(f"Load phase failed:\n{e}")
+            sys.exit(1)
 
-        rtl = RTLGenerator(m)
-        sw  = SWGenerator(m)
-        tcl = TCLGenerator(m)
+    # ------------------------------------------------------------------
 
-        if m.mode == SoCMode.STANDALONE:
-            self._gen_standalone(gen_dir, cfg_dir, rtl, tcl)
-        else:
-            self._gen_soc(gen_dir, cfg_dir, rtl, sw, tcl)
+    def _setup_output_dirs(self):
+        for sd in ("rtl", "sw", "tcl", "doc", "hal"):
+            os.makedirs(os.path.join(self.out_dir, sd), exist_ok=True)
 
-        # JSON export (always)
-        JsonExporter(m).generate(os.path.join(gen_dir, "soc_map.json"))
+    def log(self, msg: str):
+        print(f"[INFO] {msg}")
 
-        # Graphviz export (opt-in, or always for multi-fabric SoCs)
-        if export_graph or len(m.bus_fabrics) > 1:
-            dot_path = os.path.join(gen_dir, "soc_graph.dot")
-            gv = GraphvizExporter(m, show_clk_rst=graph_clk_rst)
-            gv.generate(dot_path)
-            gv.render_png(dot_path)   # no-op if `dot` not installed
+    def error(self, msg: str):
+        print(f"[ERROR] {msg}", file=sys.stderr)
 
-    # -------------------------------------------------------------------------
+    def _p(self, *parts) -> str:
+        """Join out_dir with path parts."""
+        return os.path.join(self.out_dir, *parts)
 
-    def explain(self, inst_name: str) -> None:
-        """Print registry entry + resolved params + registers for one peripheral."""
-        m = self.model
-        # find in model
-        periph = next((p for p in m.peripherals if p.inst == inst_name), None)
-        if periph is None:
-            print(f"[ERROR] '{inst_name}' not found in model "
-                  f"(available: {[p.inst for p in m.peripherals]})")
-            return
+    # ------------------------------------------------------------------
 
-        print(f"\n{'='*60}")
-        print(f"  Peripheral: {periph.inst}  (type: {periph.type})")
-        print(f"  Module:     {periph.module}")
-        print(f"  Base:       0x{periph.base:08X}")
-        print(f"  End:        0x{periph.end_addr:08X}")
-        print(f"  Size:       0x{periph.size:X} ({periph.size} bytes)")
-        print(f"  Bus type:   {periph.bus_type.value}")
-        print(f"  addr_width: {periph.addr_width}  (computed)")
-        print(f"  clk_port:   {periph.clk_port}")
-        print(f"  rst_port:   {periph.rst_port}")
+    def _build_model(self):
+        """Phase 2: BUILD (Raw Data -> validated SoCModel)."""
+        self.log("Building SoC model (address allocation & bus stitching)...")
+        try:
+            model = ModelBuilder(
+                self.loader.raw_cfg,
+                self.loader.registry,
+            ).build()
+        except ConfigError as e:
+            self.error(f"Build phase failed:\n{e}")
+            sys.exit(1)
 
-        if periph.params:
-            print(f"\n  Params:")
-            for k, v in periph.params.items():
-                pdef = next((pd for pd in periph.param_defs if pd.name == k), None)
-                tinfo = f"  [{pdef.type.value}]" if pdef else ""
-                rinfo = ""
-                if pdef:
-                    parts = []
-                    if pdef.min is not None:
-                        parts.append(f"min={pdef.min}")
-                    if pdef.max is not None:
-                        parts.append(f"max={pdef.max}")
-                    if pdef.required:
-                        parts.append("required")
-                    if parts:
-                        rinfo = f"  ({', '.join(parts)})"
-                print(f"    {k:<20} = {v}{tinfo}{rinfo}")
+        periph_count = len(model.peripherals)
+        self.log(f"  peripherals : {periph_count}")
+        self.log(f"  bus fabrics : {len(model.bus_fabrics)}")
+        self.log(f"  cpu         : {model.cpu_type}")
+        self.log(f"  ram         : {model.ram_size} B @ "
+                 f"0x{model.ram_base:08X}  (latency={model.ram_latency})")
+        self.log(f"  reset vec   : 0x{model.reset_vector:08X}")
+        return model
 
-        if periph.registers:
-            print(f"\n  Registers:")
-            print(f"    {'Offset':<8} {'Name':<16} {'Access':<6} "
-                  f"{'Width':<6} {'Reset':<10} Description")
-            print(f"    {'-'*8} {'-'*16} {'-'*6} {'-'*6} {'-'*10} -----------")
-            for r in periph.registers:
-                print(f"    0x{r.offset:04X}   {r.name:<16} "
-                      f"{r.access.value:<6} {r.width:<6} "
-                      f"0x{r.reset:08X} {r.desc}")
+    # ------------------------------------------------------------------
 
-        if periph.irqs:
-            print(f"\n  IRQs:")
-            for irq in periph.irqs:
-                print(f"    [{irq.id}] {periph.inst.upper()}_{irq.name.upper()}_IRQ")
+    def _generate_rtl(self, model):
+        """Phase 3: RTL Generation."""
+        self.log("Generating SystemVerilog RTL...")
+        gen = RTLGenerator(model)
 
-        if periph.ext_ports:
-            print(f"\n  External ports:")
-            for ep in periph.ext_ports:
-                ws = f"[{ep.width-1}:0]" if ep.width > 1 else "     "
-                print(f"    {ep.dir.value:<8} {ws} {ep.top_port}")
+        gen.generate_interfaces(self._p("rtl", "soc_interfaces.sv"))
+        # Pass timing_cfg so RTL generator can build reset syncs
+        # Note: _generate_timing runs AFTER _generate_rtl in the pipeline,
+        # so we load timing here too (cached via TimingLoader)
+        _tc = getattr(self, "_timing_cfg", None)
+        if _tc is None:
+            from timing_loader import TimingLoader
+            _tc = TimingLoader(
+                self.loader.project_cfg_path,
+                self.loader.raw_cfg).load()
+        gen.generate_soc_top(self._p("rtl", "soc_top.sv"), timing_cfg=_tc)
 
-        print(f"{'='*60}\n")
+        # If reset syncs were generated, resolve cdc_reset_synchronizer files
+        if model.reset_syncs:
+            self._add_rst_sync_files(model)
 
-    # -------------------------------------------------------------------------
+        # Per-peripheral register blocks
+        # Only generate if ip.yaml does NOT set gen_regs: false
+        # (IPs with self-contained register logic set gen_regs: false)
+        for p in model.peripherals:
+            if p.registers and p.gen_regs:
+                fname = f"{p.module}_regs.sv"
+                gen.generate_reg_block(p, self._p("rtl", fname))
 
-    def _gen_standalone(self, gen_dir, cfg_dir, rtl, tcl):
-        m = self.model
-        print(f"\n[DEMO] Standalone -> {gen_dir}\n")
-        rtl.generate_soc_top(os.path.join(gen_dir, "soc_top.sv"))
-        tcl.generate_tcl_config(os.path.join(cfg_dir, "generated_config.tcl"))
-        static_mods = []
-        for mo in m.standalone_modules:
-            for f in (mo.files or [f"{mo.module}.sv"]):
-                static_mods.append(f"../../src/soc/static/{f}")
-        tcl.generate_files_tcl(
-            os.path.join(gen_dir, "files.tcl"),
-            "gen/soc_top.sv", static_mods)
-        tcl.generate_board_hal(os.path.join(gen_dir, "hal", "board.tcl"))
-        print("\n[OK] Done: soc_top.sv  files.tcl  generated_config.tcl")
+        # Verify all static RTL files referenced by the model exist
+        static_mods = [f for p in model.peripherals for f in p.files]
+        if static_mods and model.root_dir:
+            gen.verify_static_files(
+                static_mods,
+                qsf_dir  = model.cfg_dir,
+                root_dir = model.root_dir,
+            )
 
-    def _gen_soc(self, gen_dir, cfg_dir, rtl, sw, tcl):
-        m = self.model
-        print(f"\n[GEN] SoC -> {gen_dir}")
-        print(f"      CPU: {m.cpu_type}  |  "
-              f"Peripherals (topo order): "
-              f"{[p.inst for p in m.topological_sort()]}\n")
-        rtl.generate_interfaces(os.path.join(gen_dir, "soc_interfaces.sv"))
-        rtl.generate_soc_top(os.path.join(gen_dir, "soc_top.sv"))
-        sw.generate_soc_map_h(os.path.join(gen_dir, "soc_map.h"))
-        sw.generate_soc_irq_h(os.path.join(gen_dir, "soc_irq.h"))
-        sw.generate_linker_script(os.path.join(gen_dir, "sections.lds"))
-        sw.generate_ram_size_mk(os.path.join(gen_dir, "ram_size.mk"))
-        sw.generate_soc_map_md(os.path.join(gen_dir, "soc_map.md"))
-        tcl.generate_tcl_config(os.path.join(cfg_dir, "generated_config.tcl"))
+    # ------------------------------------------------------------------
 
-        reg_sv_files = []
-        for p in m.peripherals:
-            if p.registers:
-                rp = os.path.join(gen_dir, f"{p.module}_regs.sv")
-                rtl.generate_reg_block(p, rp)
-                reg_sv_files.append(f"gen/{p.module}_regs.sv")
+    def _add_rst_sync_files(self, model) -> None:
+        """
+        Resolve cdc_reset_synchronizer RTL files from registry
+        and add to model.extra_files for inclusion in files.tcl.
+        Raises ConfigError if IP not found in registry.
+        """
+        from models import ConfigError
+        rst_meta = self.loader.registry.get("cdc_reset_synchronizer")
+        if rst_meta is None:
+            raise ConfigError(
+                "Reset synchronisers required (timing_config has reset: sections) "
+                "but 'cdc_reset_synchronizer' not found in registry.\n"
+                "  -> Add src/ip/cdc/ to ip_plugins in project_config.yaml")
 
-        static_mods = ["../../src/soc/static/soc_ram.sv"]
-        for p in m.peripherals:
-            for f in (p.files or [f"{p.module}.sv"]):
-                static_mods.append(f"../../src/soc/static/{f}")
+        plugin_path = rst_meta.get("_plugin_path", "")
+        for f in rst_meta.get("files", []):
+            if os.path.isabs(f):
+                abs_path = f
+            elif plugin_path:
+                abs_path = os.path.normpath(os.path.join(plugin_path, f))
+            else:
+                continue
+            if abs_path not in model.extra_files:
+                model.extra_files.append(abs_path)
+                self.log(f"  [reset] Added: {os.path.basename(abs_path)}")
 
-        qsf_dir = os.path.dirname(gen_dir)
-        rtl.verify_static_files(static_mods, qsf_dir, m.root_dir)
+    def _generate_sw(self, model):
+        """Phase 4: Software header / linker script generation."""
+        self.log("Generating software support files...")
+        gen = SWGenerator(model)
 
-        tcl.generate_files_tcl(
-            os.path.join(gen_dir, "files.tcl"),
-            "gen/soc_top.sv",
-            static_mods,
-            reg_sv_files
-            + ["gen/soc_interfaces.sv"]
-            + [f"../../src/cpu/{f}" for f in m.cpu_files],
+        gen.generate_soc_map_h(self._p("sw", "soc_map.h"))
+        gen.generate_soc_irq_h(self._p("sw", "soc_irq.h"))
+        gen.generate_linker_script(self._p("sw", "sections.lds"))
+        gen.generate_ram_size_mk(self._p("sw", "ram_size.mk"))
+        gen.generate_soc_map_md(self._p("doc", "soc_map.md"))
+
+    # ------------------------------------------------------------------
+
+    def _generate_tcl(self, model):
+        """Phase 5: Quartus TCL generation."""
+        self.log("Generating Quartus TCL scripts...")
+        gen = TCLGenerator(model)
+
+        gen.generate_tcl_config(self._p("tcl", "generated_config.tcl"))
+
+        # --- Collect ALL RTL files with absolute paths ---
+
+        # 1. Generated files (always present)
+        extra_files = [
+            self._p("rtl", "soc_interfaces.sv"),
+        ]
+        # reg block files only for peripherals with gen_regs=True
+        for p in model.peripherals:
+            if p.registers and p.gen_regs:
+                extra_files.append(self._p("rtl", f"{p.module}_regs.sv"))
+
+        # 2. Static IP files from plugins (relative to _plugin_path)
+        static_modules = []
+        for p in model.peripherals:
+            plugin_path = ""
+            # _plugin_path is injected by PluginLoader into registry meta,
+            # but not stored on Peripheral -- look it up from registry
+            meta = self.loader.registry.get(p.type, {})
+            plugin_path = meta.get("_plugin_path", "")
+            for f in p.files:
+                if os.path.isabs(f):
+                    static_modules.append(f)
+                elif plugin_path:
+                    static_modules.append(
+                        os.path.normpath(os.path.join(plugin_path, f)))
+                else:
+                    # Fallback: relative to project config dir
+                    cfg_dir = os.path.dirname(
+                        os.path.abspath(self.loader.project_cfg_path))
+                    static_modules.append(
+                        os.path.normpath(os.path.join(cfg_dir, f)))
+
+        # 3. RAM files (soc_ram.sv from ip plugin)
+        for f in model.ram_files:
+            static_modules.append(f)
+
+        # 4. CPU files
+        for f in model.cpu_files:
+            if os.path.isabs(f):
+                static_modules.append(f)
+            else:
+                meta = self.loader.registry.get(model.cpu_type, {})
+                plugin_path = meta.get("_plugin_path", "")
+                if plugin_path:
+                    static_modules.append(
+                        os.path.normpath(os.path.join(plugin_path, f)))
+                else:
+                    cfg_dir = os.path.dirname(
+                        os.path.abspath(self.loader.project_cfg_path))
+                    static_modules.append(
+                        os.path.normpath(os.path.join(cfg_dir, f)))
+
+        # Add model.extra_files (e.g. cdc_reset_synchronizer.sv)
+        for f in model.extra_files:
+            if f not in static_modules:
+                static_modules.append(f)
+
+        gen.generate_files_tcl(
+            self._p("tcl", "files.tcl"),
+            soc_top_path   = self._p("rtl", "soc_top.sv"),
+            static_modules = static_modules,
+            extra_files    = extra_files,
         )
-        tcl.generate_board_hal(os.path.join(gen_dir, "hal", "board.tcl"))
-        print(f"\n[OK] Done -- all files in {gen_dir}")
 
-    # -------------------------------------------------------------------------
+        gen.generate_board_hal(self._p("hal", "board.tcl"))
 
-    def _dry_run_report(self):
-        m = self.model
-        print(f"\n[DRY-RUN] Output : {m.gen_dir}  (mode: {m.mode.value})")
-        print(f"          CPU    : {m.cpu_type}  @"
-              f"  {m.clock_freq // 1_000_000} MHz")
+    # ------------------------------------------------------------------
 
-        if m.mode == SoCMode.SOC:
-            # memory map
-            print(f"\n  {'Region':<20} {'Base':>12}  {'End':>12}  "
-                  f"{'Size':>8}  Bus            Module")
-            print(f"  {'-'*20} {'-'*12}  {'-'*12}  "
-                  f"{'-'*8}  {'-'*14} ------")
-            print(f"  {'RAM':<20} {'0x00000000':>12}  "
-                  f"{'0x'+f'{m.ram_size-1:08X}':>12}  "
-                  f"{str(m.ram_size)+' B':>8}  {'--':14} soc_ram")
-            for p in m.peripherals:
-                ri = f"  [{len(p.registers)} regs]" if p.registers else ""
-                pi = f"  [{len(p.param_defs)} params]" if p.param_defs else ""
-                print(f"  {p.inst:<20} {'0x'+f'{p.base:08X}':>12}  "
-                      f"{'0x'+f'{p.end_addr:08X}':>12}  "
-                      f"{'0x'+f'{p.size:X}':>8}  "
-                      f"{p.bus_type.value:<14} {p.module}{ri}{pi}")
 
-            # bus fabrics
-            if m.bus_fabrics:
-                print("\n  Bus fabrics:")
-                for fab in m.bus_fabrics:
-                    slaves = [p.inst for p in fab.slaves]
-                    print(f"    {fab.bus_type.value:<14} "
-                          f"master={fab.masters}  slaves={slaves}")
-                    for bridge in fab.bridges:
-                        print(f"      bridge -> {bridge.to_type.value}  "
-                              f"module={bridge.module}")
+    def _generate_timing(self, model):
+        """Phase 6: SDC timing constraints generation."""
+        tl = TimingLoader(self.loader.project_cfg_path, self.loader.raw_cfg)
+        timing_cfg = tl.load()
+        self._timing_cfg = timing_cfg   # store for RTL generator
+        if timing_cfg is None:
+            return   # no timing config -- skip silently
 
-            # topological sort order
-            topo = m.topological_sort()
-            print(f"\n  Instantiation order (topological):")
-            print(f"    {' -> '.join(p.inst for p in topo)}")
+        self.log("Generating SDC timing constraints...")
+        try:
+            from generators.sdc import SDCGenerator
+        except ImportError:
+            _here = os.path.dirname(os.path.abspath(__file__))
+            sys.path.insert(0, _here)
+            from generators.sdc import SDCGenerator
 
-            # IRQs
-            if any(p.irqs for p in m.peripherals):
-                print("\n  IRQs:")
-                for p in m.peripherals:
-                    for irq in p.irqs:
-                        print(f"    [{irq.id}] {p.inst}.{irq.name}")
+        sdc_path = self._p("tcl", "soc_timing.sdc")
+        SDCGenerator(model, timing_cfg).generate(sdc_path)
 
-        else:
-            for mo in m.standalone_modules:
-                print(f"  Module: {mo.module}  inst: {mo.inst}")
+        # Pridaj SDC do files.tcl extra_files (re-generuj files.tcl)
+        # Jednoduchsie: len zaloguj -- files.tcl uz bol vygenerovany
+        self.log(f"  SDC: {sdc_path}")
+        self.log("  Add to Quartus: set_global_assignment -name SDC_FILE gen/tcl/soc_timing.sdc")
 
-        print("\n[DRY-RUN] Validation passed -- no files written.\n")
+        # Reset sync dokumentacia
+        rst_syncs = SDCGenerator(model, timing_cfg).rst_sync_needed()
+        if rst_syncs:
+            self.log(f"  Reset synchronisers needed: {len(rst_syncs)}")
+            for rs in rst_syncs:
+                self.log(f"    {rs['inst_name']}  domain={rs['domain']}  "
+                         f"stages={rs['sync_stages']}  type={rs['type']}"
+                         + (f"  sync_from={rs['sync_from']}" if rs['sync_from'] else ""))
+
+    def _generate_exports(self, model):
+        """Phase 6: Export DOT graph and JSON memory map."""
+        self.log("Exporting documentation artefacts...")
+
+        dot_path = self._p("doc", "soc_graph.dot")
+        GraphvizExporter(model).generate(dot_path)
+        GraphvizExporter(model).render_png(dot_path)   # no-op if dot not installed
+
+        JsonExporter(model).generate(self._p("doc", "soc_map.json"))
+
+    # ------------------------------------------------------------------
+
+    def run(self):
+        """Execute the complete build pipeline."""
+        self._timing_cfg = None   # populated by _generate_timing
+        try:
+            model = self._build_model()
+
+            if model.mode == SoCMode.SOC:
+                self._generate_rtl(model)
+                self._generate_sw(model)
+                self._generate_tcl(model)
+                self._generate_timing(model)
+                self._generate_exports(model)
+            elif model.mode == SoCMode.STANDALONE:
+                self._generate_rtl(model)
+                self._generate_tcl(model)
+                self._generate_timing(model)
+                self._generate_exports(model)
+            else:
+                self.error(f"Unknown SoC mode: {model.mode}")
+                sys.exit(1)
+
+            self.log("=" * 60)
+            self.log("Build SUCCESSFUL")
+            self.log(f"Output in: {self.out_dir}/")
+            self.log("=" * 60)
+
+        except ConfigError as e:
+            if self.verbose:
+                import traceback
+                traceback.print_exc()
+            self.error(f"Configuration error:\n{e}")
+            sys.exit(1)
+        except Exception as e:
+            if self.verbose:
+                import traceback
+                traceback.print_exc()
+            self.error(f"Critical error during generation: {e}")
+            sys.exit(2)
 
 
 # =============================================================================
-# CLI
+# Entry point
 # =============================================================================
 
 if __name__ == "__main__":
-    _hash = hashlib.md5(open(__file__, "rb").read()).hexdigest()[:8]
     parser = argparse.ArgumentParser(
-        description="SoC Framework Generator v3",
+        description="QMTech SoC Generator  (gen_config.py v6)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Registry resolution (later source wins on collision):
+  1. --registry ip_registry.yaml  (or auto-detected board/config/ip_registry.yaml)
+  2. *.ip.yaml files from paths.ip_plugins in project_config.yaml
+
+Examples:
+  # Classic (single registry)
+  python gen_config.py --config project_config.yaml
+
+  # Plugin-only (no base registry)
+  python gen_config.py --config project_config.yaml --no-base-registry
+
+  # Explicit registry + plugins in project_config.yaml
+  python gen_config.py --config project_config.yaml --registry board/config/ip_registry.yaml
+""",
     )
-    parser.add_argument("--config",   default=None,
+    parser.add_argument("--config",
+                        default="project_config.yaml",
                         help="Path to project_config.yaml")
-    parser.add_argument("--dry-run",  action="store_true",
-                        help="Validate and print map, no file writes")
-    parser.add_argument("--explain",  metavar="INST",
-                        help="Show registry details for one peripheral instance")
-    parser.add_argument("--graph",    action="store_true",
-                        help="Generate soc_graph.dot (+ PNG if dot is available)")
-    parser.add_argument("--graph-clk-rst", action="store_true",
-                        help="Include clock/reset edges in graph (verbose)")
-    parser.add_argument("--warnings-as-errors", action="store_true",
-                        help="Treat all [WARN] as fatal errors")
+    parser.add_argument("--registry",
+                        default="",
+                        help="Path to ip_registry.yaml "
+                             "(auto-detected if omitted)")
+    parser.add_argument("--no-base-registry",
+                        action="store_true",
+                        help="Skip auto-detection of ip_registry.yaml; "
+                             "use ip_plugins only")
+    parser.add_argument("--out",
+                        default="gen",
+                        help="Output directory (default: gen/)")
+    parser.add_argument("--verbose", "-v",
+                        action="store_true",
+                        help="Print full tracebacks on errors")
+
     args = parser.parse_args()
 
-    if args.warnings_as_errors:
-        import loader as _lm
-        _lm._WARNINGS_AS_ERRORS = True
+    registry_path = ""
+    if args.no_base_registry:
+        registry_path = ""           # force plugins-only
+    elif args.registry:
+        registry_path = args.registry
 
-    print(f"[GEN] gen_config.py  rev:{_hash}")
-    try:
-        orch = SoCOrchestrator(project_cfg_override=args.config)
-
-        if args.explain:
-            orch.explain(args.explain)
-        else:
-            orch.generate_all(
-                dry_run      = args.dry_run,
-                export_graph = args.graph,
-                graph_clk_rst= args.graph_clk_rst,
-            )
-    except ConfigError as e:
-        print(f"\n[FATAL] {e}")
-        sys.exit(1)
-    except KeyboardInterrupt:
-        sys.exit(0)
+    orch = SoCOrchestrator(
+        config_path   = args.config,
+        registry_path = registry_path,
+        out_dir       = args.out,
+        verbose       = args.verbose,
+    )
+    orch.run()

@@ -1,0 +1,42 @@
+board:
+  type: qmtech_ep4ce55
+
+paths:
+  ip_plugins:
+    - "../../../src/ip"
+    - "./local_ips"
+
+demo:
+  name: demo_pokus_02
+  mode: soc
+
+soc:
+  cpu:        vexriscv
+  ram_size:   4096
+  clock_freq: 50000000
+
+onboard:
+  leds:    true
+  seg:     false
+  dig:     false
+  buttons: false
+  uart:    true
+
+pmod:
+  J10: NONE
+  J11: NONE
+
+peripherals:
+  uart0:
+    type:    uart
+    enabled: true
+    base:    0x90000000
+  leds0:
+    type:    leds
+    enabled: true
+    base:    0x90001000
+
+clock_domains:
+  sys_clk:          SYS_CLK
+  sys_clk_shifted:  clk_100mhz_shifted   # PLL clk[3] s offsetom
+
