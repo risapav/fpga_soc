@@ -1,0 +1,54 @@
+# src/ip/cdc/cdc_lib.ip.yaml
+# CDC utility library - vsetky moduly v jednom subore
+
+cdc_reset_synchronizer:
+  type: utility
+  module: cdc_reset_synchronizer
+  bus_type: none
+  needs_bus: false
+  gen_regs: false
+  files:
+    - "cdc_reset_synchronizer.sv"
+  params:
+    - {name: STAGES, type: int, default: 2, min: 2,
+       desc: "Number of synchronisation FF stages"}
+    - {name: WIDTH,  type: int, default: 1,
+       desc: "Must be 1 - multi-bit reset sync is unsafe"}
+  port_map:
+    clk:   "clk_i"
+    rst_n: "rst_ni"
+
+cdc_two_flop_synchronizer:
+  type: utility
+  module: cdc_two_flop_synchronizer
+  bus_type: none
+  needs_bus: false
+  gen_regs: false
+  files:
+    - "cdc_two_flop_synchronizer.sv"
+  params:
+    - {name: WIDTH, type: int, default: 1, min: 1,
+       desc: "Signal width in bits"}
+  port_map:
+    clk:   "clk_i"
+    rst_n: "rst_ni"
+
+cdc_async_fifo:
+  type: utility
+  module: cdc_async_fifo
+  bus_type: none
+  needs_bus: false
+  gen_regs: false
+  files:
+    - "cdc_async_fifo.sv"
+    - "cdc_reset_synchronizer.sv"
+    - "cdc_two_flop_synchronizer.sv"
+  params:
+    - {name: DATA_WIDTH,             type: int, default: 16,  min: 1}
+    - {name: DEPTH,                  type: int, default: 1024, min: 4,
+       desc: "Must be power of 2"}
+    - {name: ALMOST_FULL_THRESHOLD,  type: int, default: 16,  min: 1}
+    - {name: ALMOST_EMPTY_THRESHOLD, type: int, default: 16,  min: 1}
+  port_map:
+    clk:   "wr_clk_i"
+    rst_n: "wr_rst_ni"

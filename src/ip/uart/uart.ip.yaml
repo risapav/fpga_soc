@@ -1,0 +1,21 @@
+# src/ip/uart/uart.ip.yaml
+module: "uart_top"
+bus_type: simple_bus
+needs_bus: true
+address_range: 0x10
+gen_regs: false
+port_map: {clk: "clk_i", rst_n: "rst_ni"}
+files:
+  - "uart_top.sv"
+interrupts:
+  - {name: rx_done, id: 0}
+registers:
+  - {name: DATA, offset: 0x00, access: rw, width: 8}
+  - {name: STAT, offset: 0x04, access: ro, width: 2}
+interfaces:
+  - type: simple_bus
+    role: slave
+  - type: serial
+    signals:
+      - {name: tx_o, dir: output, width: 1, top_name: UART_TX}
+      - {name: rx_i, dir: input,  width: 1, top_name: UART_RX}

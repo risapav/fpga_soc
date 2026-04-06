@@ -1,0 +1,18 @@
+# src/ip/soc_ram/soc_ram.ip.yaml
+type: memory
+module: soc_ram
+bus_type: none
+needs_bus: false
+files:
+  - "soc_ram.sv"
+params:
+  - {name: SIZE_BYTES, type: int, default: 4096, min: 256, desc: "RAM size in bytes (must be power of 2)"}
+  - {name: INIT_FILE,  type: str, default: "gen/software.mif", desc: "Path to .mif relative to Quartus .qsf directory"}
+
+port_map:
+  clk:   "clk"
+  addr:  "addr"
+  be:    "be"
+  we:    "we"
+  wdata: "wdata"
+  rdata: "rdata"

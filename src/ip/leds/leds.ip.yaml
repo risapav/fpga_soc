@@ -1,0 +1,18 @@
+# src/ip/leds/leds.ip.yaml
+module: "leds_top"
+bus_type: simple_bus
+needs_bus: true
+address_range: 0x08
+port_map: {clk: "clk_i", rst_n: "rst_ni"}
+files:
+  - "leds_top.sv"
+registers:
+  - {name: LED, offset: 0x00, access: rw, width: 6, desc: "W: set LED state (1=ON)  R: read current state"}
+interfaces:
+  - type: simple_bus
+    role: slave
+  - type: gpio
+    signals:
+      - {name: led, dir: output, width: 6, top_name: ONB_LEDS}
+
+gen_regs: false

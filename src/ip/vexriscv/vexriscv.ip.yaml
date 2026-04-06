@@ -1,0 +1,11 @@
+# src/ip/vexriscv/vexriscv.ip.yaml
+type: cpu
+files:
+  - "VexRiscv.v"
+  - "vexriscv_wrapper.sv"
+reset_vector: 0x80000000
+ram_base:     0x80000000
+ram_alias:    0x00000000
+port_map:
+  clk:   "SYS_CLK"
+  rst_n: "RESET_N"

@@ -1,0 +1,42 @@
+# DEMO: demo_vexriscv_hello
+# VexRiscv (GenSmallest) + UART + LEDs
+# resetVector = 0x80000000 -> RAM mapped at both 0x0 and 0x80000000
+
+board:
+  type: qmtech_ep4ce55
+
+demo:
+  name: demo_pokus_01
+  mode: soc
+
+soc:
+  cpu:          vexriscv
+  ram_size:     4096
+  clock_freq:   50_000_000
+  # reset_vector, ram_base, ram_alias -> prevezmu sa z ip_registry vexriscv defaults:
+  #   reset_vector: 0x80000000
+  #   ram_base:     0x80000000
+  #   ram_alias:    0x00000000
+  # ram_module, ram_inst, ram_port_map -> prevezmu sa z ip_registry soc_ram defaults:
+  #   module: soc_ram, inst: u_ram, ports: clk/addr/be/we/wdata/rdata
+
+onboard:
+  leds:    true
+  seg:     false
+  dig:     false
+  buttons: false
+  uart:    true
+
+pmod:
+  J10: NONE
+  J11: NONE
+
+peripherals:
+  uart0:
+    type: uart
+    enabled: true
+    base: 0x90000000
+  leds0:
+    type: leds
+    enabled: true
+    base: 0x90001000

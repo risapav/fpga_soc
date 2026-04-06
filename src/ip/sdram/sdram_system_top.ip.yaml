@@ -1,0 +1,53 @@
+# src/ip/sdram/sdram_system_top.ip.yaml
+module: sdram_system_top
+bus_type: axi_full
+needs_bus: true
+address_range: 0x2000000   # 32 MB SDRAM address space
+gen_regs: false
+
+params:
+  - {name: ID_WIDTH, type: int, default: 4, min: 1, max: 16,
+     desc: "AXI transaction ID width (must match AXI_ID_WIDTH in sdram_pkg)"}
+
+# Two clock inputs: system clock + shifted clock for SDRAM PHY
+clocks:
+  - port: clk
+    domain: sys_clk
+  - port: clk_sh
+    domain: sys_clk_shifted   # phase-shifted clock for SDRAM PHY output timing
+
+# Reset port
+port_map:
+  clk:   "clk"
+  rst_n: "rstn"
+
+# All RTL files (top + submodules, all in same directory)
+files:
+  - "sdram_system_top.sv"
+  - "sdram_pkg.sv"
+  - "axi_frontend.sv"
+  - "write_engine.sv"
+  - "read_engine.sv"
+  - "sync_fifo.sv"
+  - "timing_manager.sv"
+  - "memory_scheduler.sv"
+  - "bank_machine.sv"
+  - "sdram_phy.sv"
+  - "sdram_init.sv"
+  - "refresh_manager.sv"
+
+interfaces:
+  - type: axi_full
+    role: slave
+
+  - type: sdram
+    signals:
+      - {name: sdram_addr,  dir: output, width: 13}   # ROW_ADDR_WIDTH from pkg
+      - {name: sdram_ba,    dir: output, width: 2}    # BANK_ADDR_WIDTH from pkg
+      - {name: sdram_ras_n, dir: output, width: 1}
+      - {name: sdram_cas_n, dir: output, width: 1}
+      - {name: sdram_we_n,  dir: output, width: 1}
+      - {name: sdram_cs_n,  dir: output, width: 1}
+      - {name: sdram_dq,    dir: inout,  width: 16}
+      - {name: sdram_clk,   dir: output, width: 1}
+      - {name: sdram_cke,   dir: output, width: 1}
