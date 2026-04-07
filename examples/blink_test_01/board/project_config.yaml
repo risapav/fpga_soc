@@ -1,0 +1,34 @@
+# DEMO: blink_test
+# Minimal HW test - counter blink, no CPU, no bus
+# Verifies: clock, reset, LED pins
+board:
+  type: qmtech_ep4ce55
+
+paths:
+  ip_plugins:
+    - "../../../src/ip"
+
+demo:
+  name: blink_test
+  mode: standalone
+
+soc:
+  clock_freq: 50000000
+
+onboard:
+  leds:    true
+  seg:     false
+  dig:     false
+  buttons: false
+  uart:    false
+
+pmod:
+  J10: NONE
+  J11: NONE
+
+standalone_modules:
+  blink:
+    module:  blink_test
+    enabled: true
+    params:
+      CLK_FREQ: 50000000

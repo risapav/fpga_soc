@@ -1,0 +1,19 @@
+# board/timing_config.yaml
+clocks:
+  - name:       SYS_CLK
+    port:       SYS_CLK
+    period_ns:  20.0
+    reset:
+      port:        RESET_N
+      active_low:  true
+      sync_stages: 2
+
+io_delays:
+  auto:                   true
+  clock:                  SYS_CLK
+  default_input_max_ns:   3.0
+  default_output_max_ns:  3.0
+
+false_paths:
+  - from_port: RESET_N
+    comment:   "Async reset"

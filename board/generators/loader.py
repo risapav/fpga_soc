@@ -445,7 +445,7 @@ class RegistryValidator:
                         f"registry.{name} (cpu): 'files' list is required")
                 continue
 
-            if meta.get("type") in ("memory", "utility"):
+            if meta.get("type") in ("memory", "utility", "standalone"):
                 continue
 
             if not meta.get("needs_bus", True):

@@ -1,0 +1,18 @@
+# src/ip/blink_test/blink_test.ip.yaml
+type: standalone
+module: blink_test
+bus_type: none
+needs_bus: false
+gen_regs: false
+files:
+  - "blink_test.sv"
+params:
+  - {name: CLK_FREQ, type: int, default: 50000000, min: 1000000,
+     desc: "System clock frequency in Hz (used for blink rate calculation)"}
+port_map:
+  clk:   "SYS_CLK"
+  rst_n: "RESET_N"
+interfaces:
+  - type: gpio
+    signals:
+      - {name: ONB_LEDS, dir: output, width: 6, top_name: ONB_LEDS}

@@ -1,7 +1,7 @@
 """
 generators/sdc.py - Quartus SDC timing constraints generator
 =============================================================
-Generuje soc_timing.sdc z TimingConfig + SoCModel.
+Generuje soc_top.sdc z TimingConfig + SoCModel.
 
 Výstupné sekcie (v poradí):
   1. Header + legenda
@@ -277,9 +277,9 @@ class SDCGenerator:
 
     def generate(self, path: str) -> None:
         ctx     = _SDCContext(self.m, self.cfg).build()
-        content = render("soc_timing.sdc.j2", **ctx)
+        content = render("soc_top.sdc.j2", **ctx)
         write(path, content)
-        print("  -> soc_timing.sdc")
+        print("  -> soc_top.sdc")
 
     def rst_sync_needed(self) -> List[dict]:
         """

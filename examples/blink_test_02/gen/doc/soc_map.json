@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "schema_version": "v4",
+    "build_hash": "a0c406a9b293",
+    "board": "qmtech_ep4ce55",
+    "cpu": "picorv32",
+    "clock_hz": 50000000,
+    "ram_size": 4096,
+    "mode": "standalone"
+  },
+  "onboard": {
+    "leds": true,
+    "uart": false,
+    "buttons": false,
+    "clk": true,
+    "seg": false,
+    "dig": false
+  },
+  "pmod": {
+    "enabled": true,
+    "slots": {
+      "J10": "NONE",
+      "J11": "NONE"
+    },
+    "J10": "NONE",
+    "J11": "NONE"
+  },
+  "memory_map": {
+    "RAM": {
+      "module": "soc_ram",
+      "base": "0x00000000",
+      "end": "0x00000FFF",
+      "size": 4096,
+      "latency": "registered",
+      "init_file": "gen/software.mif"
+    }
+  },
+  "irqs": [],
+  "address_gaps": [],
+  "bus_fabrics": [],
+  "reset_syncs": [],
+  "dependencies": []
+}

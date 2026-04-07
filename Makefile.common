@@ -48,7 +48,7 @@ endif
 # --- Clean ---
 clean:
 	@echo "[CLEAN] $(DEMO_NAME)..."
-	rm -rf gen/ db/ incremental_db/ out/
+	rm -rf gen/ db/ incremental_db/ out/ output_files/
 	rm -f  *.rpt *.summary *.smsg *.pin *.done *.flow.rpt
 	rm -f  *.jdi *.sld *.asm.rpt *.fit.rpt *.map.rpt *.sta.rpt *.qpf.bak
 ifeq ($(HAS_SW),1)

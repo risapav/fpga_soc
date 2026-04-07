@@ -5,6 +5,11 @@
 board:
   type: qmtech_ep4ce55
 
+paths:
+  ip_plugins:
+    - "../../../src/ip"
+    - "./local_ips"
+
 demo:
   name: led_effects
   mode: standalone

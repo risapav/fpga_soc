@@ -20,7 +20,7 @@ from models import (
     SoCModel, Peripheral, BusType, BusFabric,
     DependencyEdge, DepKind, ConfigError, ParamDef,
     OnboardConfig, PmodConfig, RamConfig, RegField, RegAccess,
-    IrqLine, ExtPort, PortDir, ClockPort, SoCMode
+    IrqLine, ExtPort, PortDir, ClockPort, SoCMode, StandaloneModule
 )
 from loader import resolve_size, _warn, lookup_registry as _lookup_registry_util
 
@@ -50,6 +50,7 @@ class ModelBuilder:
     def build(self) -> SoCModel:
         """Main model build pipeline."""
         model = self._create_base_model()
+        self._instantiate_standalone_modules(model)
 
         # Issue 2: seed allocator with RAM regions
         self._insert_allocated(model.ram.base,
@@ -185,6 +186,72 @@ class ModelBuilder:
                       f"(no _plugin_path set) -- may not be found at build time")
                 result.append(f)
         return result
+
+    # -------------------------------------------------------------------------
+    # Standalone module instantiation
+    # -------------------------------------------------------------------------
+
+    def _instantiate_standalone_modules(self, model: SoCModel):
+        """
+        Instantiate standalone modules (mode=standalone) from standalone_modules:
+        in project_config.yaml.
+
+        Standalone modules are looked up in registry by module name or inst name.
+        They have no bus interface -- only clk/rst and external ports.
+        """
+        from models import SoCMode
+        sa_cfg = self.cfg.get("standalone_modules", {})
+        if not sa_cfg:
+            return
+
+        for inst, mcfg in sa_cfg.items():
+            if not isinstance(mcfg, dict):
+                continue
+            if not mcfg.get("enabled", True):
+                continue
+
+            module_name = mcfg.get("module", inst)
+            # Lookup in registry:
+            #   1. explicit module name (e.g. "clkpll_inst")
+            #   2. inst name (e.g. "pll")
+            #   3. by module field in registry entry (filename stem may differ)
+            meta = self.registry.get(module_name) or self.registry.get(inst)
+            if meta is None:
+                # Search by module field -- handles case where filename stem
+                # differs from module name (e.g. clkpll.ip.yaml has module: clkpll_inst)
+                meta = next(
+                    (m for m in self.registry.values()
+                     if isinstance(m, dict) and m.get("module") == module_name),
+                    None)
+            meta = meta or {}
+
+            # Port map
+            pm       = meta.get("port_map", {})
+            clk_port = pm.get("clk",   "SYS_CLK")
+            rst_port = pm.get("rst_n", "RESET_N")
+
+            # External ports from interfaces
+            ext_ports = self._build_ext_ports(inst, meta)
+
+            # Files resolved
+            files = self._resolve_files(meta)
+
+            # Params: merge registry defaults with project_config overrides
+            params = {}
+            for pd in meta.get("params", []):
+                if isinstance(pd, dict) and "name" in pd:
+                    params[pd["name"]] = pd.get("default")
+            params.update(mcfg.get("params", {}))
+
+            model.standalone_modules.append(StandaloneModule(
+                inst      = inst,
+                module    = module_name,
+                params    = params,
+                ext_ports = ext_ports,
+                files     = files,
+                clk_port  = clk_port,
+                rst_port  = rst_port,
+            ))
 
     # -------------------------------------------------------------------------
     # Peripheral instantiation
