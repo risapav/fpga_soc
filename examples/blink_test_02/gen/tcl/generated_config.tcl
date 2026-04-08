@@ -14,5 +14,5 @@ set ONB_USE_SDC 0
 set ONB_USE_CAM 0
 
 # PMOD connectors
-set PMOD(J10) "NONE"
-set PMOD(J11) "NONE"
+set PMOD(J10) "LED"
+set PMOD(J11) "LED"

@@ -1,12 +1,14 @@
 {
   "meta": {
-    "schema_version": "v4",
-    "build_hash": "a0c406a9b293",
+    "schema_version": "v5",
+    "build_hash": "b2785e59538a",
     "board": "qmtech_ep4ce55",
-    "cpu": "picorv32",
+    "mode": "standalone",
     "clock_hz": 50000000,
-    "ram_size": 4096,
-    "mode": "standalone"
+    "active_nodes": [
+      "ClockNode",
+      "StandaloneNode"
+    ]
   },
   "onboard": {
     "leds": true,
@@ -19,25 +21,78 @@
   "pmod": {
     "enabled": true,
     "slots": {
-      "J10": "NONE",
-      "J11": "NONE"
-    },
-    "J10": "NONE",
-    "J11": "NONE"
-  },
-  "memory_map": {
-    "RAM": {
-      "module": "soc_ram",
-      "base": "0x00000000",
-      "end": "0x00000FFF",
-      "size": 4096,
-      "latency": "registered",
-      "init_file": "gen/software.mif"
+      "J10": "LED",
+      "J11": "LED"
     }
   },
-  "irqs": [],
-  "address_gaps": [],
-  "bus_fabrics": [],
-  "reset_syncs": [],
-  "dependencies": []
+  "clocks": {
+    "domains": {
+      "sys_clk": "SYS_CLK",
+      "reset": "RESET_N"
+    }
+  },
+  "standalone": {
+    "modules": {
+      "blink_01": {
+        "inst": "blink_01",
+        "module": "blink_test",
+        "clk_port": "SYS_CLK",
+        "rst_port": "RESET_N",
+        "params": {
+          "CLK_FREQ": 50000000
+        },
+        "ext_ports": [
+          {
+            "name": "ONB_LEDS",
+            "dir": "output",
+            "width": 6,
+            "top_port": "ONB_LEDS"
+          }
+        ],
+        "files": [
+          "/home/palo/Projekty/fpga_soc/src/ip/blink_test/blink_test.sv"
+        ]
+      },
+      "blink_02": {
+        "inst": "blink_02",
+        "module": "blink_test",
+        "clk_port": "SYS_CLK",
+        "rst_port": "RESET_N",
+        "params": {
+          "CLK_FREQ": 50000000
+        },
+        "ext_ports": [
+          {
+            "name": "ONB_LEDS",
+            "dir": "output",
+            "width": 6,
+            "top_port": "PMOD_J10_P"
+          }
+        ],
+        "files": [
+          "/home/palo/Projekty/fpga_soc/src/ip/blink_test/blink_test.sv"
+        ]
+      },
+      "blink_03": {
+        "inst": "blink_03",
+        "module": "blink_test",
+        "clk_port": "SYS_CLK",
+        "rst_port": "RESET_N",
+        "params": {
+          "CLK_FREQ": 50000000
+        },
+        "ext_ports": [
+          {
+            "name": "ONB_LEDS",
+            "dir": "output",
+            "width": 6,
+            "top_port": "PMOD_J11_P"
+          }
+        ],
+        "files": [
+          "/home/palo/Projekty/fpga_soc/src/ip/blink_test/blink_test.sv"
+        ]
+      }
+    }
+  }
 }

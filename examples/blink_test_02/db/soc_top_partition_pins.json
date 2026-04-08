@@ -1,0 +1,89 @@
+{
+	"partitions" : [
+		{
+			"name" : "Top",
+			"pins" : [
+				{
+					"name" : "ONB_LEDS[0]",
+					"strict" : false
+				},
+				{
+					"name" : "ONB_LEDS[1]",
+					"strict" : false
+				},
+				{
+					"name" : "ONB_LEDS[2]",
+					"strict" : false
+				},
+				{
+					"name" : "ONB_LEDS[3]",
+					"strict" : false
+				},
+				{
+					"name" : "ONB_LEDS[4]",
+					"strict" : false
+				},
+				{
+					"name" : "ONB_LEDS[5]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J10_P[0]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J10_P[1]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J10_P[2]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J10_P[3]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J10_P[4]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J10_P[5]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J11_P[0]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J11_P[1]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J11_P[2]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J11_P[3]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J11_P[4]",
+					"strict" : false
+				},
+				{
+					"name" : "PMOD_J11_P[5]",
+					"strict" : false
+				},
+				{
+					"name" : "SYS_CLK",
+					"strict" : false
+				},
+				{
+					"name" : "RESET_N",
+					"strict" : false
+				}
+			]
+		}
+	]
+}

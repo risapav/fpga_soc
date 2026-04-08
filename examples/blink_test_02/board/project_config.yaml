@@ -15,7 +15,7 @@ soc:
 # Clock domain mapping: logical name -> physical signal
 clock_domains:
   sys_clk:   SYS_CLK
-  clk_100mhz: clk_100mhz
+#  clk_100mhz: clk_100mhz
 
 onboard:
   leds:    true
@@ -25,19 +25,41 @@ onboard:
   uart:    false
 
 pmod:
-  J10: NONE
-  J11: NONE
+  J10: LED
+  J11: LED
 
 standalone_modules:
-  blink:
+  blink_01:
     module:  blink_test
     enabled: true
     params:
-      CLK_FREQ: 100000000
+      CLK_FREQ: 50000000
+#      CLK_FREQ: 100000000
     # blink_test bezi na 100 MHz domene
-    clock_domains:
-      SYS_CLK: clk_100mhz
+#    clock_domains:
+#      SYS_CLK: clk_100mhz
+    port_overrides:
+      ONB_LEDS: ONB_LEDS
 
-  pll:
-    module:  clkpll_inst
+  blink_02:
+    module:  blink_test
     enabled: true
+    params:
+      CLK_FREQ: 50000000
+    # blink_test bezi na 50 MHz domene
+#    clock_domains:
+#      SYS_CLK: clk_100mhz
+    port_overrides:
+      ONB_LEDS: PMOD_J10_P
+
+  blink_03:
+    module:  blink_test
+    enabled: true
+    params:
+      CLK_FREQ: 50000000
+    port_overrides:
+      ONB_LEDS: PMOD_J11_P
+
+#  pll:
+#    module:  clkpll_inst
+#    enabled: true

@@ -1,0 +1,65 @@
+board:
+  type: qmtech_ep4ce55
+
+paths:
+  ip_plugins:
+    - "../../../src/ip"
+
+demo:
+  name: xfcp_test
+  mode: standalone
+
+soc:
+  clock_freq: 50000000
+
+# Clock domain mapping: logical name -> physical signal
+clock_domains:
+  sys_clk:   SYS_CLK
+#  clk_100mhz: clk_100mhz
+
+onboard:
+  leds:    true
+  seg:     false
+  dig:     false
+  buttons: false
+  uart:    false
+
+pmod:
+  J10: LED
+  J11: LED
+
+standalone_modules:
+  blink_01:
+    module:  blink_test
+    enabled: true
+    params:
+      CLK_FREQ: 50000000
+#      CLK_FREQ: 100000000
+    # blink_test bezi na 100 MHz domene
+#    clock_domains:
+#      SYS_CLK: clk_100mhz
+    port_overrides:
+      ONB_LEDS: ONB_LEDS
+
+  blink_02:
+    module:  blink_test
+    enabled: true
+    params:
+      CLK_FREQ: 50000000
+    # blink_test bezi na 50 MHz domene
+#    clock_domains:
+#      SYS_CLK: clk_100mhz
+    port_overrides:
+      ONB_LEDS: PMOD_J10_P
+
+  blink_03:
+    module:  blink_test
+    enabled: true
+    params:
+      CLK_FREQ: 50000000
+    port_overrides:
+      ONB_LEDS: PMOD_J11_P
+
+#  pll:
+#    module:  clkpll_inst
+#    enabled: true
