@@ -1,10 +1,10 @@
 # SoC Build Report
 
-Generated: 2026-04-11 15:10:14  
+Generated: 2026-04-11 21:07:57  
 Board: `qmtech_ep4ce55`  
 Mode: `standalone`  
 Clock: 50 MHz  
-Build hash: `b2785e59538a`  
+Build hash: `26d6a48bab49`  
 
 ## Active feature nodes
 
@@ -12,12 +12,11 @@ Only sections present in `project_config.yaml` are activated.
 
 | Node | Status | Activated by |
 |----------------------|------------|------------------------------------------|
-| `ClockNode` | ✅ active | `clock_domains` section |
-| `ResetNode` | ⬜ absent | timing_config `reset:` section |
-| `CpuNode` | ⬜ absent | `soc.cpu` field |
-| `MemoryNode` | ⬜ absent | `soc.ram_size` field |
-| `PeripheralNode` | ⬜ absent | `peripherals:` section non-empty |
-| `StandaloneNode` | ✅ active | `standalone_modules:` section non-empty |
+| `ClockTreeNode` | [active] | timing_config.yaml present |
+| `CpuNode` | [absent] | `soc.cpu` field |
+| `MemoryNode` | [absent] | `soc.ram_size` + `soc.cpu` |
+| `PeripheralNode` | [absent] | `peripherals:` section |
+| `StandaloneNode` | [active] | `standalone_modules:` section |
 
 
 ## Plugin registry
@@ -30,7 +29,7 @@ Only sections present in `project_config.yaml` are activated.
 | `cdc_async_fifo` | utility | `cdc_async_fifo` | `cdc_lib.ip.yaml` |
 | `cdc_reset_synchronizer` | utility | `cdc_reset_synchronizer` | `cdc_lib.ip.yaml` |
 | `cdc_two_flop_synchronizer` | utility | `cdc_two_flop_synchronizer` | `cdc_lib.ip.yaml` |
-| `clkpll` | standalone | `ClkPll_inst` | `clkpll.ip.yaml` |
+| `clkpll` | standalone | `ClkPll` | `clkpll.ip.yaml` |
 | `leds` | peripheral | `leds_top` | `leds.ip.yaml` |
 | `sdram_system_top` | peripheral | `sdram_system_top` | `sdram_system_top.ip.yaml` |
 | `soc_ram` | memory | `soc_ram` | `soc_ram.ip.yaml` |
@@ -42,17 +41,27 @@ Only sections present in `project_config.yaml` are activated.
 
 | Logical domain | Physical signal |
 |------------------------|------------------------|
+| `clk_100mhz` | `clk_100mhz` |
 | `reset` | `RESET_N` |
 | `sys_clk` | `SYS_CLK` |
+
+
+## Reset synchronisers
+
+| Instance | Domain | Clock signal | Stages | Type | Sync from |
+|--------------------------|----------------|------------------|----------|------------|----------------|
+| `u_rst_sync_sys_clk` | SYS_CLK | `SYS_CLK` | 2 | primary | — |
+| `u_rst_sync_clk_100mhz` | clk_100mhz | `clk_100mhz` | 2 | cdc | SYS_CLK |
 
 
 ## Standalone modules
 
 | Instance | Module | Clock port | Reset port | Params | Files |
 |----------------|------------------|--------------|--------------|--------------------------------|--------------------------------|
-| `blink_01` | `blink_test` | `SYS_CLK` | `RESET_N` | CLK_FREQ=50000000 | `blink_test.sv` |
-| `blink_02` | `blink_test` | `SYS_CLK` | `RESET_N` | CLK_FREQ=50000000 | `blink_test.sv` |
+| `blink_01` | `blink_test` | `SYS_CLK` | `RESET_N` | CLK_FREQ=100000000 | `blink_test.sv` |
+| `blink_02` | `blink_test` | `SYS_CLK` | `RESET_N` | CLK_FREQ=100000000 | `blink_test.sv` |
 | `blink_03` | `blink_test` | `SYS_CLK` | `RESET_N` | CLK_FREQ=50000000 | `blink_test.sv` |
+| `pll` | `ClkPll` | `inclk0` | `areset` | — | `ClkPll.qip` |
 
 
 ### External ports (from standalone modules)
@@ -84,4 +93,6 @@ Files that will appear in `gen/tcl/files.tcl`:
 - `blink_test.sv` — SystemVerilog
 - `blink_test.sv` — SystemVerilog
 - `blink_test.sv` — SystemVerilog
+- `ClkPll.qip` — Quartus IP
+- `cdc_reset_synchronizer.sv` — SystemVerilog
 

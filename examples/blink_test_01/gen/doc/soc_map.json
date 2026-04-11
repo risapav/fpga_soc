@@ -1,12 +1,14 @@
 {
   "meta": {
-    "schema_version": "v4",
-    "build_hash": "19a2fe7630b3",
+    "schema_version": "v6",
+    "build_hash": "8814beaa0f06",
     "board": "qmtech_ep4ce55",
-    "cpu": "picorv32",
+    "mode": "standalone",
     "clock_hz": 50000000,
-    "ram_size": 4096,
-    "mode": "standalone"
+    "active_nodes": [
+      "ClockTreeNode",
+      "StandaloneNode"
+    ]
   },
   "onboard": {
     "leds": true,
@@ -21,23 +23,56 @@
     "slots": {
       "J10": "NONE",
       "J11": "NONE"
-    },
-    "J10": "NONE",
-    "J11": "NONE"
-  },
-  "memory_map": {
-    "RAM": {
-      "module": "soc_ram",
-      "base": "0x00000000",
-      "end": "0x00000FFF",
-      "size": 4096,
-      "latency": "registered",
-      "init_file": "gen/software.mif"
     }
   },
-  "irqs": [],
-  "address_gaps": [],
-  "bus_fabrics": [],
-  "reset_syncs": [],
-  "dependencies": []
+  "clock_tree": {
+    "board_clocks": [
+      {
+        "name": "SYS_CLK",
+        "port": "SYS_CLK",
+        "period_ns": 20.0,
+        "freq_mhz": 50.0
+      }
+    ],
+    "plls": [],
+    "domains": [
+      {
+        "name": "sys_clk",
+        "signal": "SYS_CLK",
+        "source": "board"
+      },
+      {
+        "name": "reset",
+        "signal": "RESET_N",
+        "source": "board"
+      }
+    ],
+    "reset_syncs": []
+  },
+  "standalone": {
+    "modules": {
+      "blink": {
+        "inst": "blink",
+        "module": "blink_test",
+        "clock_domain": "sys_clk",
+        "clk_port": "SYS_CLK",
+        "rst_port": "RESET_N",
+        "clk_signal": "SYS_CLK",
+        "params": {
+          "CLK_FREQ": 50000000
+        },
+        "ext_ports": [
+          {
+            "name": "ONB_LEDS",
+            "dir": "output",
+            "width": 6,
+            "top_port": "ONB_LEDS"
+          }
+        ],
+        "files": [
+          "/home/palo/Projekty/fpga_soc/src/ip/blink_test/blink_test.sv"
+        ]
+      }
+    }
+  }
 }

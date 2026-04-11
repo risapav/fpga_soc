@@ -1,12 +1,12 @@
 {
   "meta": {
-    "schema_version": "v5",
-    "build_hash": "b2785e59538a",
+    "schema_version": "v6",
+    "build_hash": "26d6a48bab49",
     "board": "qmtech_ep4ce55",
     "mode": "standalone",
     "clock_hz": 50000000,
     "active_nodes": [
-      "ClockNode",
+      "ClockTreeNode",
       "StandaloneNode"
     ]
   },
@@ -25,21 +25,79 @@
       "J11": "LED"
     }
   },
-  "clocks": {
-    "domains": {
-      "sys_clk": "SYS_CLK",
-      "reset": "RESET_N"
-    }
+  "clock_tree": {
+    "board_clocks": [
+      {
+        "name": "SYS_CLK",
+        "port": "SYS_CLK",
+        "period_ns": 20.0,
+        "freq_mhz": 50.0
+      }
+    ],
+    "plls": [
+      {
+        "inst": "u_pll",
+        "source": "SYS_CLK",
+        "outputs": [
+          {
+            "name": "clk_100mhz",
+            "multiply_by": 2,
+            "divide_by": 1,
+            "pin_index": 0,
+            "phase_shift": 0
+          }
+        ]
+      }
+    ],
+    "domains": [
+      {
+        "name": "sys_clk",
+        "signal": "SYS_CLK",
+        "source": "board"
+      },
+      {
+        "name": "reset",
+        "signal": "RESET_N",
+        "source": "board"
+      },
+      {
+        "name": "clk_100mhz",
+        "signal": "clk_100mhz",
+        "source": ""
+      }
+    ],
+    "reset_syncs": [
+      {
+        "inst": "u_rst_sync_sys_clk",
+        "domain": "SYS_CLK",
+        "clk": "SYS_CLK",
+        "rst_in": "RESET_N",
+        "rst_out": "sys_clk_rst_n",
+        "stages": 2,
+        "type": "primary"
+      },
+      {
+        "inst": "u_rst_sync_clk_100mhz",
+        "domain": "clk_100mhz",
+        "clk": "clk_100mhz",
+        "rst_in": "sys_clk_rst_n",
+        "rst_out": "clk_100mhz_rst_n",
+        "stages": 2,
+        "type": "cdc"
+      }
+    ]
   },
   "standalone": {
     "modules": {
       "blink_01": {
         "inst": "blink_01",
         "module": "blink_test",
+        "clock_domain": "clk_100mhz",
         "clk_port": "SYS_CLK",
         "rst_port": "RESET_N",
+        "clk_signal": "clk_100mhz",
         "params": {
-          "CLK_FREQ": 50000000
+          "CLK_FREQ": 100000000
         },
         "ext_ports": [
           {
@@ -56,10 +114,12 @@
       "blink_02": {
         "inst": "blink_02",
         "module": "blink_test",
+        "clock_domain": "clk_100mhz",
         "clk_port": "SYS_CLK",
         "rst_port": "RESET_N",
+        "clk_signal": "clk_100mhz",
         "params": {
-          "CLK_FREQ": 50000000
+          "CLK_FREQ": 100000000
         },
         "ext_ports": [
           {
@@ -76,8 +136,10 @@
       "blink_03": {
         "inst": "blink_03",
         "module": "blink_test",
+        "clock_domain": "sys_clk",
         "clk_port": "SYS_CLK",
         "rst_port": "RESET_N",
+        "clk_signal": "SYS_CLK",
         "params": {
           "CLK_FREQ": 50000000
         },
@@ -91,6 +153,19 @@
         ],
         "files": [
           "/home/palo/Projekty/fpga_soc/src/ip/blink_test/blink_test.sv"
+        ]
+      },
+      "pll": {
+        "inst": "pll",
+        "module": "ClkPll",
+        "clock_domain": "sys_clk",
+        "clk_port": "inclk0",
+        "rst_port": "areset",
+        "clk_signal": "SYS_CLK",
+        "params": {},
+        "ext_ports": [],
+        "files": [
+          "/home/palo/Projekty/fpga_soc/examples/blink_test_02/board/cores/clkpll/ClkPll.qip"
         ]
       }
     }

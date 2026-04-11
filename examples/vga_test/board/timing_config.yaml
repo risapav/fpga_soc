@@ -36,3 +36,25 @@ false_paths:
     comment:   "Async reset"
 
 derive_uncertainty: true
+
+
+# timing_config.yaml
+plls:
+  - inst:   ClkPll
+    source: SYS_CLK
+    outputs:
+      - name: clk_100mhz    # CPU/periph domain
+        multiply_by: 2
+        divide_by:   1
+      - name: pixel_clk     # VGA/HDMI domain
+        multiply_by: 4
+        divide_by:   5      # 40 MHz pre 800x600
+      - name: sdram_clk     # SDRAM domain
+        multiply_by: 2
+        divide_by:   1
+      - name: sdram_clk_shifted  # SDRAM s fázovým posunom
+        multiply_by: 2
+        divide_by:   1
+        phase_shift: 90
+
+

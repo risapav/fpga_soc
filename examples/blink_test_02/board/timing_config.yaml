@@ -8,7 +8,7 @@ clocks:
       sync_stages: 2
 
 plls:
-  - inst:   clkpll_inst
+  - inst:   u_pll
     source: SYS_CLK
     outputs:
       - name:        clk_100mhz

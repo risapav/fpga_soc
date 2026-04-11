@@ -63,3 +63,13 @@ standalone_modules:
 #  pll:
 #    module:  clkpll_inst
 #    enabled: true
+
+# project_config.yaml
+standalone_modules:
+  hdmi_ctrl:
+    module: hdmi_top
+    clock_domain: pixel_clk      # logická doména, nie fyzický signál
+  sdram_ctrl:
+    module: sdram_top
+    clock_domain: sdram_clk
+

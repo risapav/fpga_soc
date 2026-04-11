@@ -3,19 +3,19 @@ board:
 
 paths:
   ip_plugins:
+    - "cores"              # lokalny adresar vedla project_config.yaml
     - "../../../src/ip"
 
 demo:
-  name: blink_test
+  name: blink_test_02
   mode: standalone
 
 soc:
   clock_freq: 50000000
 
-# Clock domain mapping: logical name -> physical signal
 clock_domains:
-  sys_clk:   SYS_CLK
-#  clk_100mhz: clk_100mhz
+  sys_clk:    SYS_CLK
+  clk_100mhz: clk_100mhz
 
 onboard:
   leds:    true
@@ -33,11 +33,9 @@ standalone_modules:
     module:  blink_test
     enabled: true
     params:
-      CLK_FREQ: 50000000
-#      CLK_FREQ: 100000000
-    # blink_test bezi na 100 MHz domene
-#    clock_domains:
-#      SYS_CLK: clk_100mhz
+      CLK_FREQ: 100000000
+    clock_domains:
+      SYS_CLK: clk_100mhz
     port_overrides:
       ONB_LEDS: ONB_LEDS
 
@@ -45,10 +43,9 @@ standalone_modules:
     module:  blink_test
     enabled: true
     params:
-      CLK_FREQ: 50000000
-    # blink_test bezi na 50 MHz domene
-#    clock_domains:
-#      SYS_CLK: clk_100mhz
+      CLK_FREQ: 100000000
+    clock_domains:
+      SYS_CLK: clk_100mhz
     port_overrides:
       ONB_LEDS: PMOD_J10_P
 
@@ -60,6 +57,6 @@ standalone_modules:
     port_overrides:
       ONB_LEDS: PMOD_J11_P
 
-#  pll:
-#    module:  clkpll_inst
-#    enabled: true
+  pll:
+    module:  ClkPll
+    enabled: true
