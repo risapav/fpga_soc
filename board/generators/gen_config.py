@@ -56,6 +56,7 @@ except ImportError as _imp_err:
         ) from _imp_err
 
 from export import GraphvizExporter, JsonExporter
+from structure_exporter import StructureExporter
 from timing_loader import TimingLoader
 
 
@@ -146,9 +147,16 @@ class SoCOrchestrator:
         gen = RTLGenerator(model)
 
         gen.generate_interfaces(self._p("rtl", "soc_interfaces.sv"))
-        # timing_cfg loaded once in run() -- guaranteed consistent with SDC
-        gen.generate_soc_top(self._p("rtl", "soc_top.sv"),
-                             timing_cfg=self._timing_cfg)
+        # Pass timing_cfg so RTL generator can build reset syncs
+        # Note: _generate_timing runs AFTER _generate_rtl in the pipeline,
+        # so we load timing here too (cached via TimingLoader)
+        _tc = getattr(self, "_timing_cfg", None)
+        if _tc is None:
+            from timing_loader import TimingLoader
+            _tc = TimingLoader(
+                self.loader.project_cfg_path,
+                self.loader.raw_cfg).load()
+        gen.generate_soc_top(self._p("rtl", "soc_top.sv"), timing_cfg=_tc)
 
         # If reset syncs were generated, resolve cdc_reset_synchronizer files
         if model.reset_syncs:
@@ -221,36 +229,59 @@ class SoCOrchestrator:
 
         # --- Collect ALL RTL files with absolute paths ---
 
-        is_soc = (model.mode == SoCMode.SOC)
+        # 1. Generated files (always present)
+        extra_files = [
+            self._p("rtl", "soc_interfaces.sv"),
+        ]
+        # reg block files only for peripherals with gen_regs=True
+        for p in model.peripherals:
+            if p.registers and p.gen_regs:
+                extra_files.append(self._p("rtl", f"{p.module}_regs.sv"))
 
-        # 1. Generated RTL files (mode-dependent)
-        extra_files = []
-        if is_soc:
-            extra_files.append(self._p("rtl", "soc_interfaces.sv"))
-            for p in model.peripherals:
-                if p.registers and p.gen_regs:
-                    extra_files.append(self._p("rtl", f"{p.module}_regs.sv"))
-
-        # 2. Static IP files (already resolved to absolute by builder)
-        # Rules: soc_ram + CPU = SOC only; peripherals + standalone = both modes
+        # 2. Static IP files from plugins (relative to _plugin_path)
         static_modules = []
         for p in model.peripherals:
+            plugin_path = ""
+            # _plugin_path is injected by PluginLoader into registry meta,
+            # but not stored on Peripheral -- look it up from registry
+            meta = self.loader.registry.get(p.type, {})
+            plugin_path = meta.get("_plugin_path", "")
             for f in p.files:
-                if f and f not in static_modules:
+                if os.path.isabs(f):
                     static_modules.append(f)
-        for sm in model.standalone_modules:
-            for f in sm.files:
-                if f and f not in static_modules:
-                    static_modules.append(f)
-        if is_soc:
-            for f in model.ram_files:
-                if f and f not in static_modules:
-                    static_modules.append(f)
-            for f in model.cpu_files:
-                if f and f not in static_modules:
-                    static_modules.append(f)
+                elif plugin_path:
+                    static_modules.append(
+                        os.path.normpath(os.path.join(plugin_path, f)))
+                else:
+                    # Fallback: relative to project config dir
+                    cfg_dir = os.path.dirname(
+                        os.path.abspath(self.loader.project_cfg_path))
+                    static_modules.append(
+                        os.path.normpath(os.path.join(cfg_dir, f)))
+
+        # 3. RAM files (soc_ram.sv from ip plugin)
+        for f in model.ram_files:
+            static_modules.append(f)
+
+        # 4. CPU files
+        for f in model.cpu_files:
+            if os.path.isabs(f):
+                static_modules.append(f)
+            else:
+                meta = self.loader.registry.get(model.cpu_type, {})
+                plugin_path = meta.get("_plugin_path", "")
+                if plugin_path:
+                    static_modules.append(
+                        os.path.normpath(os.path.join(plugin_path, f)))
+                else:
+                    cfg_dir = os.path.dirname(
+                        os.path.abspath(self.loader.project_cfg_path))
+                    static_modules.append(
+                        os.path.normpath(os.path.join(cfg_dir, f)))
+
+        # Add model.extra_files (e.g. cdc_reset_synchronizer.sv)
         for f in model.extra_files:
-            if f and f not in static_modules:
+            if f not in static_modules:
                 static_modules.append(f)
 
         gen.generate_files_tcl(
@@ -267,8 +298,9 @@ class SoCOrchestrator:
 
     def _generate_timing(self, model):
         """Phase 6: SDC timing constraints generation."""
-        # timing_cfg already loaded in run() -- use cached value
-        timing_cfg = self._timing_cfg
+        tl = TimingLoader(self.loader.project_cfg_path, self.loader.raw_cfg)
+        timing_cfg = tl.load()
+        self._timing_cfg = timing_cfg   # store for RTL generator
         if timing_cfg is None:
             return   # no timing config -- skip silently
 
@@ -280,12 +312,13 @@ class SoCOrchestrator:
             sys.path.insert(0, _here)
             from generators.sdc import SDCGenerator
 
-        sdc_path = self._p("tcl", "soc_top.sdc")
+        sdc_path = self._p("tcl", "soc_timing.sdc")
         SDCGenerator(model, timing_cfg).generate(sdc_path)
 
         # Pridaj SDC do files.tcl extra_files (re-generuj files.tcl)
         # Jednoduchsie: len zaloguj -- files.tcl uz bol vygenerovany
         self.log(f"  SDC: {sdc_path}")
+        self.log("  Add to Quartus: set_global_assignment -name SDC_FILE gen/tcl/soc_timing.sdc")
 
         # Reset sync dokumentacia
         rst_syncs = SDCGenerator(model, timing_cfg).rst_sync_needed()
@@ -297,7 +330,7 @@ class SoCOrchestrator:
                          + (f"  sync_from={rs['sync_from']}" if rs['sync_from'] else ""))
 
     def _generate_exports(self, model):
-        """Phase 6: Export DOT graph and JSON memory map."""
+        """Phase 6: Export DOT graph, JSON memory map, and build structure report."""
         self.log("Exporting documentation artefacts...")
 
         dot_path = self._p("doc", "soc_graph.dot")
@@ -306,20 +339,19 @@ class SoCOrchestrator:
 
         JsonExporter(model).generate(self._p("doc", "soc_map.json"))
 
+        # Structure report (v5 node architecture)
+        StructureExporter(model, self.loader.registry).generate(
+            report_path = self._p("doc", "build_report.md"),
+            map_path    = self._p("doc", "plugin_map.json"),
+        )
+
     # ------------------------------------------------------------------
 
     def run(self):
         """Execute the complete build pipeline."""
+        self._timing_cfg = None   # populated by _generate_timing
         try:
             model = self._build_model()
-
-            # Load timing config ONCE here -- shared by _generate_rtl and
-            # _generate_timing. Prevents double-load and potential inconsistency
-            # if timing file changes between calls (Bug B fix).
-            from timing_loader import TimingLoader
-            self._timing_cfg = TimingLoader(
-                self.loader.project_cfg_path,
-                self.loader.raw_cfg).load()
 
             if model.mode == SoCMode.SOC:
                 self._generate_rtl(model)

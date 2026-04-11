@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "generated": "2026-04-11 15:10:14",
+    "board": "qmtech_ep4ce55",
+    "mode": "standalone",
+    "build_hash": "b2785e59538a",
+    "active_nodes": [
+      "ClockNode",
+      "StandaloneNode"
+    ],
+    "plugins_loaded": 10,
+    "plugins_instantiated": 1
+  },
+  "plugins": {
+    "blink_test": {
+      "type": "standalone",
+      "module": "blink_test",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/blink_test/blink_test.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/blink_test",
+      "files": [
+        "blink_test.sv"
+      ],
+      "bus_type": "none",
+      "needs_bus": false,
+      "instantiated": true,
+      "inst": "blink_03",
+      "inst_kind": "standalone",
+      "interfaces": [
+        {
+          "type": "gpio",
+          "signals": 1
+        }
+      ]
+    },
+    "cdc_async_fifo": {
+      "type": "utility",
+      "module": "cdc_async_fifo",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/cdc/cdc_lib.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/cdc",
+      "files": [
+        "cdc_async_fifo.sv",
+        "cdc_reset_synchronizer.sv",
+        "cdc_two_flop_synchronizer.sv"
+      ],
+      "bus_type": "none",
+      "needs_bus": false,
+      "instantiated": false
+    },
+    "cdc_reset_synchronizer": {
+      "type": "utility",
+      "module": "cdc_reset_synchronizer",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/cdc/cdc_lib.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/cdc",
+      "files": [
+        "cdc_reset_synchronizer.sv"
+      ],
+      "bus_type": "none",
+      "needs_bus": false,
+      "instantiated": false
+    },
+    "cdc_two_flop_synchronizer": {
+      "type": "utility",
+      "module": "cdc_two_flop_synchronizer",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/cdc/cdc_lib.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/cdc",
+      "files": [
+        "cdc_two_flop_synchronizer.sv"
+      ],
+      "bus_type": "none",
+      "needs_bus": false,
+      "instantiated": false
+    },
+    "clkpll": {
+      "type": "standalone",
+      "module": "ClkPll_inst",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/clkpll/clkpll.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/clkpll",
+      "files": [
+        "ClkPll.qip"
+      ],
+      "bus_type": "none",
+      "needs_bus": false,
+      "instantiated": false,
+      "interfaces": [
+        {
+          "type": "clock_output",
+          "signals": 2
+        }
+      ]
+    },
+    "leds": {
+      "type": "peripheral",
+      "module": "leds_top",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/leds/leds.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/leds",
+      "files": [
+        "leds_top.sv"
+      ],
+      "bus_type": "simple_bus",
+      "needs_bus": true,
+      "instantiated": false,
+      "interfaces": [
+        {
+          "type": "simple_bus",
+          "signals": 0
+        },
+        {
+          "type": "gpio",
+          "signals": 1
+        }
+      ]
+    },
+    "sdram_system_top": {
+      "type": "peripheral",
+      "module": "sdram_system_top",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/sdram/sdram_system_top.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/sdram",
+      "files": [
+        "sdram_system_top.sv",
+        "sdram_pkg.sv",
+        "axi_frontend.sv",
+        "write_engine.sv",
+        "read_engine.sv",
+        "sync_fifo.sv",
+        "timing_manager.sv",
+        "memory_scheduler.sv",
+        "bank_machine.sv",
+        "sdram_phy.sv",
+        "sdram_init.sv",
+        "refresh_manager.sv"
+      ],
+      "bus_type": "axi_full",
+      "needs_bus": true,
+      "instantiated": false,
+      "interfaces": [
+        {
+          "type": "axi_full",
+          "signals": 0
+        },
+        {
+          "type": "sdram",
+          "signals": 9
+        }
+      ]
+    },
+    "soc_ram": {
+      "type": "memory",
+      "module": "soc_ram",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/soc_ram/soc_ram.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/soc_ram",
+      "files": [
+        "soc_ram.sv"
+      ],
+      "bus_type": "none",
+      "needs_bus": false,
+      "instantiated": false
+    },
+    "uart": {
+      "type": "peripheral",
+      "module": "uart_top",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/uart/uart.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/uart",
+      "files": [
+        "uart_top.sv"
+      ],
+      "bus_type": "simple_bus",
+      "needs_bus": true,
+      "instantiated": false,
+      "interfaces": [
+        {
+          "type": "simple_bus",
+          "signals": 0
+        },
+        {
+          "type": "serial",
+          "signals": 2
+        }
+      ]
+    },
+    "vexriscv": {
+      "type": "cpu",
+      "module": "vexriscv",
+      "origin_yaml": "/home/palo/Projekty/fpga_soc/src/ip/vexriscv/vexriscv.ip.yaml",
+      "plugin_path": "/home/palo/Projekty/fpga_soc/src/ip/vexriscv",
+      "files": [
+        "VexRiscv.v",
+        "vexriscv_wrapper.sv"
+      ],
+      "bus_type": "none",
+      "needs_bus": false,
+      "instantiated": false
+    }
+  }
+}
